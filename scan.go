@@ -55,7 +55,7 @@ func main() {
         Start:  start,
         Stop:   stop,
         Draw:   draw,
-        Touch:  touch,
+        Touch:  touch, //触摸屏幕,以及滑动时触发
         Config: config,//初始化及窗口大小调整位置调整时触发
     })
 }
