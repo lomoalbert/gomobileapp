@@ -54,7 +54,7 @@ func main() {
     app.Run(app.Callbacks{
         Start:  start,
         Stop:   stop,
-        Draw:   draw,
+        Draw:   draw,  //持续触发,每次触发生成一帧图像
         Touch:  touch, //触摸屏幕,以及滑动时触发
         Config: config,//初始化及窗口大小调整位置调整时触发
     })
