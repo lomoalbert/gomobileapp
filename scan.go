@@ -56,7 +56,7 @@ func main() {
         Stop:   stop,
         Draw:   draw,
         Touch:  touch,
-        Config: config,
+        Config: config,//初始化及窗口大小调整位置调整时触发
     })
 }
 
@@ -86,11 +86,13 @@ func stop() {
 }
 
 func config(new, old event.Config) {
+    log.Println(new,old)
     touchLoc = geom.Point{new.Width / 2, new.Height / 2}
 }
 
 func touch(t event.Touch, c event.Config) {
     touchLoc = t.Loc
+    log.Println(t.Loc)
 }
 
 func draw(c event.Config) {
@@ -117,7 +119,7 @@ func draw(c event.Config) {
 }
 
 var triangleData = f32.Bytes(binary.LittleEndian,
-0.0, 0.4, 0.0, // top left
+0.0, 0.3, 0.0, // top left
 0.0, 0.0, 0.0, // bottom left
 0.4, 0.0, 0.0, // bottom right
 )
