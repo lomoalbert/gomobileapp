@@ -118,7 +118,7 @@ func draw(c event.Config) {
     debug.DrawFPS(c)
 }
 
-var triangleData = f32.Bytes(binary.LittleEndian,
+var triangleData = f32.Bytes(binary.LittleEndian,   //三角
 0.0, 0.3, 0.0, // top left
 0.0, 0.0, 0.0, // bottom left
 0.4, 0.0, 0.0, // bottom right
