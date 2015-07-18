@@ -80,6 +80,7 @@ func start() {
     // Can this be an event.Register call now??
 }
 
+//停止时触发,清理
 func stop() {
     gl.DeleteProgram(program)
     gl.DeleteBuffer(buf)
