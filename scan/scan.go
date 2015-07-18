@@ -109,8 +109,9 @@ func draw(c event.Config) {
         green = 0
     }
     gl.Uniform4f(color, 0, green, 0, 1)//设置color对象值,设置4个浮点数.
+    //offset有两个值X,Y,窗口左上角为(0,0),右下角为(1,1)
+    gl.Uniform2f(offset, float32(touchLoc.X/c.Width), float32(touchLoc.Y/c.Height))//设置偏移量对象,设置2个浮点数;
 
-    gl.Uniform2f(offset, float32(touchLoc.X/c.Width), float32(touchLoc.Y/c.Height))//设置偏移量对象,设置2个浮点数
     log.Println(offset, float32(touchLoc.X/c.Width), float32(touchLoc.Y/c.Height),touchLoc,c)
     gl.BindBuffer(gl.ARRAY_BUFFER, buf)
     gl.EnableVertexAttribArray(position)
