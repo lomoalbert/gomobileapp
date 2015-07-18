@@ -37,6 +37,7 @@ import (
     "golang.org/x/mobile/exp/gl/glutil"
     "golang.org/x/mobile/geom"
     "golang.org/x/mobile/gl"
+    "fmt"
 )
 
 var (
@@ -75,7 +76,7 @@ func start() {
     position = gl.GetAttribLocation(program, "position")
     color =  gl.GetUniformLocation(program, "color")
     offset = gl.GetUniformLocation(program, "offset")
-
+    // fmt.Println(position.String(),color.String(),offset.String())//Attrib(0) Uniform(1) Uniform(0)
     // TODO(crawshaw): the debug package needs to put GL state init here
     // Can this be an event.Register call now??
 }
@@ -97,9 +98,11 @@ func touch(t event.Touch, c event.Config) {
 }
 
 func draw(c event.Config) {
+    //清场
     gl.ClearColor(1, 0, 0, 1)
     gl.Clear(gl.COLOR_BUFFER_BIT)
 
+    //使用program
     gl.UseProgram(program)
 
     green += 0.01
