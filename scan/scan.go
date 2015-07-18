@@ -130,6 +130,8 @@ const (
     vertexCount     = 3
 )
 
+//两类着色器编程使用GLSL(GL Shader Language，GL着色语言)，它是OpenGL的一部分。与C或Java不同，GLSL必须在运行时编译，这意味着每次启动程序，所有的着色器将重新编译。
+//顶点(vertex)着色器，它将作用于每个顶点上
 const vertexShader = `#version 100
 uniform vec2 offset;
 
@@ -141,6 +143,7 @@ void main() {
 	gl_Position = position + offset4;
 }`
 
+//片断（Fragment）着色器，它将作用于每一个采样点
 const fragmentShader = `#version 100
 precision mediump float;
 uniform vec4 color;
