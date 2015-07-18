@@ -37,7 +37,6 @@ import (
     "golang.org/x/mobile/exp/gl/glutil"
     "golang.org/x/mobile/geom"
     "golang.org/x/mobile/gl"
-    "fmt"
 )
 
 var (
@@ -73,9 +72,9 @@ func start() {
     gl.BindBuffer(gl.ARRAY_BUFFER, buf)
     gl.BufferData(gl.ARRAY_BUFFER, triangleData, gl.STATIC_DRAW)
 
-    position = gl.GetAttribLocation(program, "position")
-    color =  gl.GetUniformLocation(program, "color")
-    offset = gl.GetUniformLocation(program, "offset")
+    position = gl.GetAttribLocation(program, "position")//获取位置对象
+    color =  gl.GetUniformLocation(program, "color") // 获取颜色对象
+    offset = gl.GetUniformLocation(program, "offset") // 获取偏移对象
     // fmt.Println(position.String(),color.String(),offset.String())//Attrib(0) Uniform(1) Uniform(0)
     // TODO(crawshaw): the debug package needs to put GL state init here
     // Can this be an event.Register call now??
@@ -109,13 +108,13 @@ func draw(c event.Config) {
     if green > 1 {
         green = 0
     }
-    gl.Uniform4f(color, 0, green, 0, 1)
+    gl.Uniform4f(color, 0, green, 0, 1)//设置color对象值
 
-    gl.Uniform2f(offset, float32(touchLoc.X/c.Width), float32(touchLoc.Y/c.Height))
+    gl.Uniform2f(offset, float32(touchLoc.X/c.Width), float32(touchLoc.Y/c.Height))//设置偏移量对象
 
     gl.BindBuffer(gl.ARRAY_BUFFER, buf)
     gl.EnableVertexAttribArray(position)
-    gl.VertexAttribPointer(position, coordsPerVertex, gl.FLOAT, false, 0, 0)
+    gl.VertexAttribPointer(position, coordsPerVertex, gl.FLOAT, false, 0, 0)//顶点属性
     gl.DrawArrays(gl.TRIANGLES, 0, vertexCount)
     gl.DisableVertexAttribArray(position)
 
@@ -123,14 +122,14 @@ func draw(c event.Config) {
 }
 
 var triangleData = f32.Bytes(binary.LittleEndian,   //三角
-0.0, 0.3, 0.0, // top left
-0.0, 0.0, 0.0, // bottom left
+0.0, 1.3, 0.0, // top left
+0.0, -1.3, 0.0, // bottom left
 0.4, 0.0, 0.0, // bottom right
 )
 
 const (
-    coordsPerVertex = 3
-    vertexCount     = 3
+    coordsPerVertex = 3 //点坐标
+    vertexCount     = 3 //点数
 )
 
 //两类着色器编程使用GLSL(GL Shader Language，GL着色语言)，它是OpenGL的一部分。与C或Java不同，GLSL必须在运行时编译，这意味着每次启动程序，所有的着色器将重新编译。
