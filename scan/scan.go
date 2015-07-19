@@ -41,11 +41,10 @@ import (
 var (
     program  gl.Program
     position gl.Attrib
-    offset   gl.Uniform
+    scan   gl.Uniform
     color    gl.Uniform
     buf      gl.Buffer
 
-    green    float32
     touchLoc geom.Point
 )
 
@@ -85,7 +84,7 @@ func start() {
     */
     position = gl.GetAttribLocation(program, "position")//获取位置对象(索引)
     color =  gl.GetUniformLocation(program, "color") // 获取颜色对象(索引)
-    offset = gl.GetUniformLocation(program, "offset") // 获取偏移对象(索引)
+    scan = gl.GetUniformLocation(program, "scan") // 获取偏移对象(索引)
     // fmt.Println(position.String(),color.String(),offset.String())//Attrib(0) Uniform(1) Uniform(0)
     // TODO(crawshaw): the debug package needs to put GL state init here
     // Can this be an event.Register call now??
@@ -98,31 +97,34 @@ func stop() {
 }
 
 func config(new, old event.Config) {
-    log.Println(new,old)
     touchLoc = geom.Point{new.Width / 2, new.Height / 2}
 }
 
 func touch(t event.Touch, c event.Config) {
     touchLoc = t.Loc
-    log.Println(t.Loc)
+    log.Println("touch.loc",t.Loc)
+    log.Println("config",c.Width,c.Height)
 }
 
 func draw(c event.Config) {
     //清场
-    gl.ClearColor(1, 0, 0, 1)
+    gl.ClearColor(0.3, 0.3, 0, 1) //设置背景颜色
     gl.Clear(gl.COLOR_BUFFER_BIT)
 
     //使用program
     gl.UseProgram(program)
 
-    green += 0.01
-    if green > 1 {
-        green = 0
-    }
-    gl.Uniform4f(color, green, green, green, 1)//设置color对象值,设置4个浮点数.
+    gl.Uniform4f(color, 0, 0.5, 0.5, 1)//设置color对象值,设置4个浮点数.
     //offset有两个值X,Y,窗口左上角为(0,0),右下角为(1,1)
-    gl.Uniform2f(offset, float32(touchLoc.X/c.Width), float32(touchLoc.Y/c.Height))//设置偏移量对象,设置2个浮点数;
-    log.Println(offset, float32(touchLoc.X/c.Width), float32(touchLoc.Y/c.Height),touchLoc,c)
+    //gl.Uniform4f(offset,5.0,1.0,1.0,1.0 )
+    //gl.Uniform2f(offset,offsetx,offsety )//为2参数的uniform变量赋值
+    //log.Println("offset:",offsetx,offsety, 0, 0)
+    gl.UniformMatrix4fv(scan,[]float32{
+        float32(touchLoc.X/c.Width*4-2),0,0,0,
+        0,float32(touchLoc.Y/c.Height*4-2),0,0,
+        0,0,0,0,
+        0,0,0,1,
+    })
     gl.BindBuffer(gl.ARRAY_BUFFER, buf)
     gl.EnableVertexAttribArray(position)
     /*glVertexAttribPointer 指定了渲染时索引值为 index 的顶点属性数组的数据格式和位置。调用gl.vertexAttribPointer()方法，把顶点着色器中某个属性相对应的通用属性索引连接到绑定的webGLBUffer对象上。
@@ -141,9 +143,9 @@ func draw(c event.Config) {
 }
 
 var triangleData = f32.Bytes(binary.LittleEndian,   //三角
-0.0, 1.3, 0.0, // top left
-0.0, -1.3, 0.0, // bottom left
-0.4, 0.0, 0.0, // bottom right
+0.0, 0.5, 0.0, // top left
+-0.5, -0.5, 0.0, // bottom left
+0.5, -0.5, 0.0, // bottom right
 )
 
 const (
@@ -155,14 +157,10 @@ const (
 //顶点(vertex)着色器，它将作用于每个顶点上
 //vec2即2个值,vec4即4个值
 const vertexShader = `#version 100
-uniform vec2 offset;
-
+uniform mat4 scan;
 attribute vec4 position;
 void main() {
-	// offset comes in with x/y values between 0 and 1.
-	// position bounds are -1 to 1.
-	vec4 offset4 = vec4(2.0*offset.x-1.0, 1.0-2.0*offset.y, 0, 0);
-	gl_Position = position + offset4;
+	gl_Position = position*scan ;
 }`
 
 //片断（Fragment）着色器，它将作用于每一个采样点
