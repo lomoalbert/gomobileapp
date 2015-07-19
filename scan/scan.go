@@ -67,13 +67,21 @@ func start() {
         return
     }
 
+    //创建一个WebGLBuffer对象，把它绑定到顶点缓冲上，并把顶点数据载入到顶点冲。
     buf = gl.CreateBuffer()
     gl.BindBuffer(gl.ARRAY_BUFFER, buf)
     gl.BufferData(gl.ARRAY_BUFFER, triangleData, gl.STATIC_DRAW)
+    /*
+    uniform变量是外部application程序传递给（vertex和fragment）shader的变量。因此它是application通过函数glUniform**（）函数赋值的。
+    在（vertex和fragment）shader程序内部，uniform变量就像是C语言里面的常量（const ），它不能被shader程序修改。（shader只能用，不能改）
 
-    position = gl.GetAttribLocation(program, "position")//获取位置对象
-    color =  gl.GetUniformLocation(program, "color") // 获取颜色对象
-    offset = gl.GetUniformLocation(program, "offset") // 获取偏移对象
+    attribute变量是只能在vertex shader中使用的变量。（它不能在fragment shader中声明attribute变量，也不能被fragment shader中使用）
+    一般用attribute变量来表示一些顶点的数据，如：顶点坐标，法线，纹理坐标，顶点颜色等。
+    在application中，一般用函数glBindAttribLocation（）来绑定每个attribute变量的位置，然后用函数glVertexAttribPointer（）为每个attribute变量赋值。
+    */
+    position = gl.GetAttribLocation(program, "position")//获取位置对象(索引)
+    color =  gl.GetUniformLocation(program, "color") // 获取颜色对象(索引)
+    offset = gl.GetUniformLocation(program, "offset") // 获取偏移对象(索引)
     // fmt.Println(position.String(),color.String(),offset.String())//Attrib(0) Uniform(1) Uniform(0)
     // TODO(crawshaw): the debug package needs to put GL state init here
     // Can this be an event.Register call now??
@@ -110,11 +118,10 @@ func draw(c event.Config) {
     gl.Uniform4f(color, green, green, green, 1)//设置color对象值,设置4个浮点数.
     //offset有两个值X,Y,窗口左上角为(0,0),右下角为(1,1)
     gl.Uniform2f(offset, float32(touchLoc.X/c.Width), float32(touchLoc.Y/c.Height))//设置偏移量对象,设置2个浮点数;
-
     log.Println(offset, float32(touchLoc.X/c.Width), float32(touchLoc.Y/c.Height),touchLoc,c)
     gl.BindBuffer(gl.ARRAY_BUFFER, buf)
     gl.EnableVertexAttribArray(position)
-    /*glVertexAttribPointer 指定了渲染时索引值为 index 的顶点属性数组的数据格式和位置。
+    /*glVertexAttribPointer 指定了渲染时索引值为 index 的顶点属性数组的数据格式和位置。调用gl.vertexAttribPointer()方法，把顶点着色器中某个属性相对应的通用属性索引连接到绑定的webGLBUffer对象上。
     index 指定要修改的顶点属性的索引值
     size    指定每个顶点属性的组件数量。必须为1、2、3或者4。初始值为4。（如position是由3个（x,y,z）组成，而颜色是4个（r,g,b,a））
     type    指定数组中每个组件的数据类型。可用的符号常量有GL_BYTE, GL_UNSIGNED_BYTE, GL_SHORT,GL_UNSIGNED_SHORT, GL_FIXED, 和 GL_FLOAT，初始值为GL_FLOAT。
