@@ -108,7 +108,7 @@ func touch(t event.Touch, c event.Config) {
 
 func draw(c event.Config) {
     //清场
-    gl.ClearColor(0, 0.3, 0, 1) //设置背景颜色
+    gl.ClearColor(1, 1, 1, 1) //设置背景颜色
     gl.Clear(gl.COLOR_BUFFER_BIT)
 
     //使用program
