@@ -120,7 +120,7 @@ func draw(c event.Config) {
     //gl.Enable(gl.DEPTH_TEST)
     //gl.DepthFunc(gl.LESS)
     //清场
-    gl.ClearColor(0, 1, 1, 0.5) //设置背景颜色
+    gl.ClearColor(1, 1, 1, 1) //设置背景颜色
     gl.Clear(gl.COLOR_BUFFER_BIT)
     gl.Clear(gl.DEPTH_BUFFER_BIT)
 
