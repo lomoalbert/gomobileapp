@@ -135,7 +135,7 @@ func draw(c event.Config) {
     stride  指定连续顶点属性之间的偏移量。如果为0，那么顶点属性会被理解为：它们是紧密排列在一起的。初始值为0。
     pointer 指定第一个组件在数组的第一个顶点属性中的偏移量。该数组与GL_ARRAY_BUFFER绑定，储存于缓冲区中。初始值为0；
     */
-    gl.VertexAttribPointer(position, coordsPerVertex, gl.FLOAT, false, 0, 0)
+    gl.VertexAttribPointer(position, coordsPerVertex, gl.FLOAT, false, 0, 0) //更新position值
     gl.DrawArrays(gl.TRIANGLES, 0, vertexCount)
     gl.DisableVertexAttribArray(position)
 
