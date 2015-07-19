@@ -108,13 +108,13 @@ func touch(t event.Touch, c event.Config) {
 
 func draw(c event.Config) {
     //清场
-    gl.ClearColor(0.3, 0.3, 0, 1) //设置背景颜色
+    gl.ClearColor(0, 0.3, 0, 1) //设置背景颜色
     gl.Clear(gl.COLOR_BUFFER_BIT)
 
     //使用program
     gl.UseProgram(program)
 
-    gl.Uniform4f(color, 0, 0.5, 0.5, 1)//设置color对象值,设置4个浮点数.
+    gl.Uniform4f(color, 0, 0.5, 0.8, 1)//设置color对象值,设置4个浮点数.
     //offset有两个值X,Y,窗口左上角为(0,0),右下角为(1,1)
     //gl.Uniform4f(offset,5.0,1.0,1.0,1.0 )
     //gl.Uniform2f(offset,offsetx,offsety )//为2参数的uniform变量赋值
