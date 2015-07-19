@@ -1,172 +1,263 @@
-// Copyright 2014 The Go Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file.
-
-// An app that draws a green triangle on a red background.
-//
-// Note: This demo is an early preview of Go 1.5. In order to build this
-// program as an Android APK using the gomobile tool.
-//
-// See http://godoc.org/golang.org/x/mobile/cmd/gomobile to install gomobile.
-//
-// Get the basic example and use gomobile to build or install it on your device.
-//
-//   $ go get -d golang.org/x/mobile/example/basic
-//   $ gomobile build golang.org/x/mobile/example/basic # will build an APK
-//
-//   # plug your Android device to your computer or start an Android emulator.
-//   # if you have adb installed on your machine, use gomobile install to
-//   # build and deploy the APK to an Android target.
-//   $ gomobile install golang.org/x/mobile/example/basic
-//
-// Switch to your device or emulator to start the Basic application from
-// the launcher.
-// You can also run the application on your desktop by running the command
-// below. (Note: It currently doesn't work on Windows.)
-//   $ go install golang.org/x/mobile/example/basic && basic
 package main
 
 import (
-    "encoding/binary"
-    "log"
-
+    "fmt"
+    "time"
+    "github.com/go-gl/mathgl/mgl32"
     "golang.org/x/mobile/app"
     "golang.org/x/mobile/event"
     "golang.org/x/mobile/exp/app/debug"
-    "golang.org/x/mobile/exp/f32"
-    "golang.org/x/mobile/exp/gl/glutil"
     "golang.org/x/mobile/geom"
     "golang.org/x/mobile/gl"
+    "bytes"
+    "encoding/binary"
+    "image"
+    image_draw "image/draw"
+    _ "image/png"
+    "io/ioutil"
+    "golang.org/x/mobile/asset"
+    "golang.org/x/mobile/exp/gl/glutil"
 )
 
-var (
-    program  gl.Program
-    position gl.Attrib
-    offset   gl.Uniform
-    color    gl.Uniform
-    buf      gl.Buffer
+type Shape struct {
+    buf     gl.Buffer
+    texture gl.Texture
+}
 
-    green    float32
+type Shader struct {
+    program      gl.Program
+    vertCoord    gl.Attrib
+    vertTexCoord gl.Attrib
+    projection   gl.Uniform
+    view         gl.Uniform
+    model        gl.Uniform
+}
+
+type Engine struct {
+    shader   Shader
+    shape    Shape
     touchLoc geom.Point
-)
-
-func main() {
-    app.Run(app.Callbacks{
-        Start:  start,
-        Stop:   stop,
-        Draw:   draw,  //持续触发,每次触发生成一帧图像
-        Touch:  touch, //触摸屏幕,以及滑动时触发
-        Config: config,//初始化及窗口大小调整位置调整时触发
-    })
+    started  time.Time
 }
 
-func start() {
+func (e *Engine) Start() {
     var err error
-    program, err = glutil.CreateProgram(vertexShader, fragmentShader)
+
+    e.shader.program, err = LoadProgram("shader.v.glsl", "shader.f.glsl")
     if err != nil {
-        log.Printf("error creating GL program: %v", err)
-        return
+        panic(fmt.Sprintln("LoadProgram failed:", err))
     }
 
-    buf = gl.CreateBuffer()
-    gl.BindBuffer(gl.ARRAY_BUFFER, buf)
-    gl.BufferData(gl.ARRAY_BUFFER, triangleData, gl.STATIC_DRAW)
+    e.shape.buf = gl.CreateBuffer()
+    gl.BindBuffer(gl.ARRAY_BUFFER, e.shape.buf)
+    gl.BufferData(gl.ARRAY_BUFFER, EncodeObject(cubeData), gl.STATIC_DRAW)
 
-    position = gl.GetAttribLocation(program, "position")//获取位置对象
-    color =  gl.GetUniformLocation(program, "color") // 获取颜色对象
-    offset = gl.GetUniformLocation(program, "offset") // 获取偏移对象
-    // fmt.Println(position.String(),color.String(),offset.String())//Attrib(0) Uniform(1) Uniform(0)
-    // TODO(crawshaw): the debug package needs to put GL state init here
-    // Can this be an event.Register call now??
+    e.shader.vertCoord = gl.GetAttribLocation(e.shader.program, "vertCoord")
+    e.shader.vertTexCoord = gl.GetAttribLocation(e.shader.program, "vertTexCoord")
+
+    e.shader.projection = gl.GetUniformLocation(e.shader.program, "projection")
+    e.shader.view = gl.GetUniformLocation(e.shader.program, "view")
+    e.shader.model = gl.GetUniformLocation(e.shader.program, "model")
+
+    e.shape.texture, err = LoadTexture("gopher.png")
+    if err != nil {
+        panic(fmt.Sprintln("LoadTexture failed:", err))
+    }
+
+    e.started = time.Now()
 }
 
-//停止时触发,清理
-func stop() {
-    gl.DeleteProgram(program)
-    gl.DeleteBuffer(buf)
+func (e *Engine) Stop() {
+    gl.DeleteProgram(e.shader.program)
+    gl.DeleteBuffer(e.shape.buf)
 }
 
-func config(new, old event.Config) {
-    log.Println(new,old)
-    touchLoc = geom.Point{new.Width / 2, new.Height / 2}
+func (e *Engine) Config(new, old event.Config) {
+    e.touchLoc = geom.Point{new.Width / 2, new.Height / 2}
 }
 
-func touch(t event.Touch, c event.Config) {
-    touchLoc = t.Loc
-    log.Println(t.Loc)
+func (e *Engine) Touch(t event.Touch, c event.Config) {
+    e.touchLoc = t.Loc
 }
 
-func draw(c event.Config) {
-    //清场
-    gl.ClearColor(1, 0, 0, 1)
+func (e *Engine) Draw(c event.Config) {
+    since := time.Now().Sub(e.started)
+
+    gl.Enable(gl.DEPTH_TEST)
+    gl.DepthFunc(gl.LESS)
+
+    gl.ClearColor(0, 0, 0, 1)
     gl.Clear(gl.COLOR_BUFFER_BIT)
+    gl.Clear(gl.DEPTH_BUFFER_BIT)
 
-    //使用program
-    gl.UseProgram(program)
+    gl.UseProgram(e.shader.program)
 
-    green += 0.01
-    if green > 1 {
-        green = 0
-    }
-    gl.Uniform4f(color, 0, green, 0, 1)//设置color对象值,设置4个浮点数.
-    //offset有两个值X,Y,窗口左上角为(0,0),右下角为(1,1)
-    gl.Uniform2f(offset, float32(touchLoc.X/c.Width), float32(touchLoc.Y/c.Height))//设置偏移量对象,设置2个浮点数;
+    m := mgl32.Perspective(0.785, float32(c.Width/c.Height), 0.1, 10.0)
+    gl.UniformMatrix4fv(e.shader.projection, m[:])
 
-    log.Println(offset, float32(touchLoc.X/c.Width), float32(touchLoc.Y/c.Height),touchLoc,c)
-    gl.BindBuffer(gl.ARRAY_BUFFER, buf)
-    gl.EnableVertexAttribArray(position)
-    gl.VertexAttribPointer(position, coordsPerVertex, gl.FLOAT, false, 0, 0)//顶点属性
+    eye := mgl32.Vec3{3, 3, 3}
+    center := mgl32.Vec3{0, 0, 0}
+    up := mgl32.Vec3{0, 1, 0}
+
+    m = mgl32.LookAtV(eye, center, up)
+    gl.UniformMatrix4fv(e.shader.view, m[:])
+
+    m = mgl32.HomogRotate3D(float32(since.Seconds()), mgl32.Vec3{0, 1, 0})
+    gl.UniformMatrix4fv(e.shader.model, m[:])
+
+    gl.BindBuffer(gl.ARRAY_BUFFER, e.shape.buf)
+
+    coordsPerVertex := 3
+    texCoordsPerVertex := 2
+    vertexCount := len(cubeData) / (coordsPerVertex + texCoordsPerVertex)
+
+    gl.EnableVertexAttribArray(e.shader.vertCoord)
+    gl.VertexAttribPointer(e.shader.vertCoord, coordsPerVertex, gl.FLOAT, false, 20, 0) // 4 bytes in float, 5 values per vertex
+
+    gl.EnableVertexAttribArray(e.shader.vertTexCoord)
+    gl.VertexAttribPointer(e.shader.vertTexCoord, texCoordsPerVertex, gl.FLOAT, false, 20, 12)
+
+    gl.BindTexture(gl.TEXTURE_2D, e.shape.texture)
+
     gl.DrawArrays(gl.TRIANGLES, 0, vertexCount)
-    gl.DisableVertexAttribArray(position)
+
+    gl.DisableVertexAttribArray(e.shader.vertCoord)
 
     debug.DrawFPS(c)
 }
 
-var triangleData = f32.Bytes(binary.LittleEndian,   //三角
-0.0, 1.3, 0.0, // top left
-0.0, -1.3, 0.0, // bottom left
-0.4, 0.0, 0.0, // bottom right
-)
+var cubeData = []float32{
+    //  X, Y, Z, U, V
+    // Bottom
+    -1.0, -1.0, -1.0, 0.0, 0.0,
+    1.0, -1.0, -1.0, 1.0, 0.0,
+    -1.0, -1.0, 1.0, 0.0, 1.0,
+    1.0, -1.0, -1.0, 1.0, 0.0,
+    1.0, -1.0, 1.0, 1.0, 1.0,
+    -1.0, -1.0, 1.0, 0.0, 1.0,
 
-const (
-    coordsPerVertex = 3 //点坐标
-    vertexCount     = 3 //点数
-)
+    // Top
+    -1.0, 1.0, -1.0, 0.0, 0.0,
+    -1.0, 1.0, 1.0, 0.0, 1.0,
+    1.0, 1.0, -1.0, 1.0, 0.0,
+    1.0, 1.0, -1.0, 1.0, 0.0,
+    -1.0, 1.0, 1.0, 0.0, 1.0,
+    1.0, 1.0, 1.0, 1.0, 1.0,
 
-//两类着色器编程使用GLSL(GL Shader Language，GL着色语言)，它是OpenGL的一部分。与C或Java不同，GLSL必须在运行时编译，这意味着每次启动程序，所有的着色器将重新编译。
-//顶点(vertex)着色器，它将作用于每个顶点上
-//vec2即2个值,vec4即4个值
-const vertexShader = `#version 330
-#define _DEBUG_VERSION
-layout (std140) uniform Matrices {
-	mat4 pvm;
-} ;
-in vec4 position;
-#if defined(_DEBUG_VERSION)
-out vec4 color;
-#endif
-void main()
-{
-#if defined(_DEBUG_VERSION)
-	 color = position;
-#endif
-	gl_Position = pvm * position ;
-} `
+    // Front
+    -1.0, -1.0, 1.0, 1.0, 0.0,
+    1.0, -1.0, 1.0, 0.0, 0.0,
+    -1.0, 1.0, 1.0, 1.0, 1.0,
+    1.0, -1.0, 1.0, 0.0, 0.0,
+    1.0, 1.0, 1.0, 0.0, 1.0,
+    -1.0, 1.0, 1.0, 1.0, 1.0,
 
-//片断（Fragment）着色器，它将作用于每一个采样点
-const fragmentShader = `#version 330
+    // Back
+    -1.0, -1.0, -1.0, 0.0, 0.0,
+    -1.0, 1.0, -1.0, 0.0, 1.0,
+    1.0, -1.0, -1.0, 1.0, 0.0,
+    1.0, -1.0, -1.0, 1.0, 0.0,
+    -1.0, 1.0, -1.0, 0.0, 1.0,
+    1.0, 1.0, -1.0, 1.0, 1.0,
 
-#define _DEBUG_VERSION
+    // Left
+    -1.0, -1.0, 1.0, 0.0, 1.0,
+    -1.0, 1.0, -1.0, 1.0, 0.0,
+    -1.0, -1.0, -1.0, 0.0, 0.0,
+    -1.0, -1.0, 1.0, 0.0, 1.0,
+    -1.0, 1.0, 1.0, 1.0, 1.0,
+    -1.0, 1.0, -1.0, 1.0, 0.0,
 
-#if defined(_DEBUG_VERSION)
-in  vec4 color;
-#else
-uniform vec4 color = vec4(1.0, 0.0, 0.0, 1.0);
-#endif
+    // Right
+    1.0, -1.0, 1.0, 1.0, 1.0,
+    1.0, -1.0, -1.0, 1.0, 0.0,
+    1.0, 1.0, -1.0, 0.0, 0.0,
+    1.0, -1.0, 1.0, 1.0, 1.0,
+    1.0, 1.0, -1.0, 0.0, 0.0,
+    1.0, 1.0, 1.0, 0.0, 1.0,
+}
 
-out vec4 outputF;
+func main() {
+    e := Engine{}
+    app.Run(app.Callbacks{
+        Start:  e.Start,
+        Stop:   e.Stop,
+        Draw:   e.Draw,
+        Touch:  e.Touch,
+        Config: e.Config,
+    })
+}
 
-void main()
-{
-	outputF = color;
-} `
+
+
+// EncodeObject converts float32 vertices into a LittleEndian byte array.
+func EncodeObject(vertices ...[]float32) []byte {
+    buf := bytes.Buffer{}
+    for _, v := range vertices {
+        err := binary.Write(&buf, binary.LittleEndian, v)
+        if err != nil {
+            panic(fmt.Sprintln("binary.Write failed:", err))
+        }
+    }
+
+    return buf.Bytes()
+}
+
+func loadAsset(name string) ([]byte, error) {
+    f, err := asset.Open(name)
+    if err != nil {
+        return nil, err
+    }
+    return ioutil.ReadAll(f)
+}
+
+// LoadProgram reads shader sources from the asset repository, compiles, and
+// links them into a program.
+func LoadProgram(vertexAsset, fragmentAsset string) (p gl.Program, err error) {
+    vertexSrc, err := loadAsset(vertexAsset)
+    if err != nil {
+        return
+    }
+
+    fragmentSrc, err := loadAsset(fragmentAsset)
+    if err != nil {
+        return
+    }
+
+    p, err = glutil.CreateProgram(string(vertexSrc), string(fragmentSrc))
+    return
+}
+
+// LoadTexture reads and decodes an image from the asset repository and creates
+// a texture object based on the full dimensions of the image.
+func LoadTexture(name string) (tex gl.Texture, err error) {
+    imgFile, err := asset.Open(name)
+    if err != nil {
+        return
+    }
+    img, _, err := image.Decode(imgFile)
+    if err != nil {
+        return
+    }
+
+    rgba := image.NewRGBA(img.Bounds())
+    image_draw.Draw(rgba, rgba.Bounds(), img, image.Point{0, 0}, image_draw.Src)
+
+    tex = gl.CreateTexture()
+    gl.ActiveTexture(gl.TEXTURE0)
+    gl.BindTexture(gl.TEXTURE_2D, tex)
+    gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
+    gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
+    gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
+    gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
+    gl.TexImage2D(
+    gl.TEXTURE_2D,
+    0,
+    rgba.Rect.Size().X,
+    rgba.Rect.Size().Y,
+    gl.RGBA,
+    gl.UNSIGNED_BYTE,
+    rgba.Pix)
+
+    return
+}
