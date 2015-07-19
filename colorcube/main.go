@@ -29,6 +29,7 @@ package main
 import (
     "encoding/binary"
     "log"
+
     "golang.org/x/mobile/app"
     "golang.org/x/mobile/event"
     "golang.org/x/mobile/exp/app/debug"
@@ -107,22 +108,14 @@ func draw(c event.Config) {
     if green > 1 {
         green = 0
     }
-    gl.Uniform4f(color, green, green, green, 1)//设置color对象值,设置4个浮点数.
+    gl.Uniform4f(color, 0, green, 0, 1)//设置color对象值,设置4个浮点数.
     //offset有两个值X,Y,窗口左上角为(0,0),右下角为(1,1)
     gl.Uniform2f(offset, float32(touchLoc.X/c.Width), float32(touchLoc.Y/c.Height))//设置偏移量对象,设置2个浮点数;
 
     log.Println(offset, float32(touchLoc.X/c.Width), float32(touchLoc.Y/c.Height),touchLoc,c)
     gl.BindBuffer(gl.ARRAY_BUFFER, buf)
     gl.EnableVertexAttribArray(position)
-    /*glVertexAttribPointer 指定了渲染时索引值为 index 的顶点属性数组的数据格式和位置。
-    index 指定要修改的顶点属性的索引值
-    size    指定每个顶点属性的组件数量。必须为1、2、3或者4。初始值为4。（如position是由3个（x,y,z）组成，而颜色是4个（r,g,b,a））
-    type    指定数组中每个组件的数据类型。可用的符号常量有GL_BYTE, GL_UNSIGNED_BYTE, GL_SHORT,GL_UNSIGNED_SHORT, GL_FIXED, 和 GL_FLOAT，初始值为GL_FLOAT。
-    normalized  指定当被访问时，固定点数据值是否应该被归一化（GL_TRUE）或者直接转换为固定点值（GL_FALSE）。
-    stride  指定连续顶点属性之间的偏移量。如果为0，那么顶点属性会被理解为：它们是紧密排列在一起的。初始值为0。
-    pointer 指定第一个组件在数组的第一个顶点属性中的偏移量。该数组与GL_ARRAY_BUFFER绑定，储存于缓冲区中。初始值为0；
-    */
-    gl.VertexAttribPointer(position, coordsPerVertex, gl.FLOAT, false, 0, 0)
+    gl.VertexAttribPointer(position, coordsPerVertex, gl.FLOAT, false, 0, 0)//顶点属性
     gl.DrawArrays(gl.TRIANGLES, 0, vertexCount)
     gl.DisableVertexAttribArray(position)
 
@@ -143,21 +136,37 @@ const (
 //两类着色器编程使用GLSL(GL Shader Language，GL着色语言)，它是OpenGL的一部分。与C或Java不同，GLSL必须在运行时编译，这意味着每次启动程序，所有的着色器将重新编译。
 //顶点(vertex)着色器，它将作用于每个顶点上
 //vec2即2个值,vec4即4个值
-const vertexShader = `#version 100
-uniform vec2 offset;
-
-attribute vec4 position;
-void main() {
-	// offset comes in with x/y values between 0 and 1.
-	// position bounds are -1 to 1.
-	vec4 offset4 = vec4(2.0*offset.x-1.0, 1.0-2.0*offset.y, 0, 0);
-	gl_Position = position + offset4;
-}`
+const vertexShader = `#version 330
+#define _DEBUG_VERSION
+layout (std140) uniform Matrices {
+	mat4 pvm;
+} ;
+in vec4 position;
+#if defined(_DEBUG_VERSION)
+out vec4 color;
+#endif
+void main()
+{
+#if defined(_DEBUG_VERSION)
+	 color = position;
+#endif
+	gl_Position = pvm * position ;
+} `
 
 //片断（Fragment）着色器，它将作用于每一个采样点
-const fragmentShader = `#version 100
-precision mediump float;
-uniform vec4 color;
-void main() {
-	gl_FragColor = color;
-}`
+const fragmentShader = `#version 330
+
+#define _DEBUG_VERSION
+
+#if defined(_DEBUG_VERSION)
+in  vec4 color;
+#else
+uniform vec4 color = vec4(1.0, 0.0, 0.0, 1.0);
+#endif
+
+out vec4 outputF;
+
+void main()
+{
+	outputF = color;
+} `
