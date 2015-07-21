@@ -151,7 +151,6 @@ func draw(c event.Config) {
 
     gl.EnableVertexAttribArray(position)
     gl.VertexAttribPointer(position, coordsPerVertex, gl.FLOAT, false, 0, 0) //更新position值
-    gl.DrawArrays(gl.TRIANGLES, 0, vertexCount)
     //gl.DisableVertexAttribArray(position)
 
 
