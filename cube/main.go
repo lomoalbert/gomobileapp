@@ -50,6 +50,7 @@ func (e *Engine) Start() {
 
     e.shape.buf = gl.CreateBuffer()
     gl.BindBuffer(gl.ARRAY_BUFFER, e.shape.buf)
+    fmt.Println(EncodeObject(cubeData))
     gl.BufferData(gl.ARRAY_BUFFER, EncodeObject(cubeData), gl.STATIC_DRAW)
 
     e.shader.vertCoord = gl.GetAttribLocation(e.shader.program, "vertCoord")
@@ -93,6 +94,7 @@ func (e *Engine) Draw(c event.Config) {
     gl.UseProgram(e.shader.program)
 
     m := mgl32.Perspective(0.785, float32(c.Width/c.Height), 0.1, 10.0)
+    //fmt.Println(m,"------")
     gl.UniformMatrix4fv(e.shader.projection, m[:])
 
     eye := mgl32.Vec3{3, 3, 3}
@@ -100,9 +102,11 @@ func (e *Engine) Draw(c event.Config) {
     up := mgl32.Vec3{0, 1, 0}
 
     m = mgl32.LookAtV(eye, center, up)
+    //fmt.Println(m,"+++++++")
     gl.UniformMatrix4fv(e.shader.view, m[:])
 
     m = mgl32.HomogRotate3D(float32(since.Seconds()), mgl32.Vec3{0, 1, 0})
+    fmt.Println(m,"=======")
     gl.UniformMatrix4fv(e.shader.model, m[:])
 
     gl.BindBuffer(gl.ARRAY_BUFFER, e.shape.buf)
