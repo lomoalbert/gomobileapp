@@ -30,7 +30,10 @@ import (
     "encoding/binary"
     "log"
     "golang.org/x/mobile/app"
-    "golang.org/x/mobile/event"
+    "golang.org/x/mobile/event/config"
+    "golang.org/x/mobile/event/lifecycle"
+    "golang.org/x/mobile/event/paint"
+    "golang.org/x/mobile/event/touch"
     "golang.org/x/mobile/exp/app/debug"
     "golang.org/x/mobile/exp/f32"
     "golang.org/x/mobile/exp/gl/glutil"
@@ -50,16 +53,31 @@ var (
 )
 
 func main() {
-    app.Run(app.Callbacks{
-        Start:  start,
-        Stop:   stop,
-        Draw:   draw,  //持续触发,每次触发生成一帧图像
-        Touch:  touch, //触摸屏幕,以及滑动时触发
-        Config: config,//初始化及窗口大小调整位置调整时触发
+    app.Main(func(a app.App) {
+        var c config.Event
+        for e := range a.Events() {
+            switch e := app.Filter(e).(type) {
+                case lifecycle.Event:
+                switch e.Crosses(lifecycle.StageVisible) {
+                    case lifecycle.CrossOn:
+                    onStart()
+                    case lifecycle.CrossOff:
+                    onStop()
+                }
+                case config.Event:
+                c = e
+                touchLoc = geom.Point{c.Width / 2, c.Height / 2}
+                case paint.Event:
+                onPaint(c)
+                a.EndPaint()
+                case touch.Event:
+                touchLoc = e.Loc
+            }
+        }
     })
 }
 
-func start() {
+func onStart() {
     var err error
     program, err = glutil.CreateProgram(vertexShader, fragmentShader)
     if err != nil {
@@ -102,21 +120,14 @@ func start() {
 }
 
 //停止时触发,清理
-func stop() {
+func onStop() {
     gl.DeleteProgram(program)
     gl.DeleteBuffer(positionbuf)
     gl.DeleteBuffer(colorbuf)
 }
 
-func config(new, old event.Config) {
-    touchLoc = geom.Point{new.Width / 2, new.Height / 2}
-}
 
-func touch(t event.Touch, c event.Config) {
-    touchLoc = t.Loc
-}
-
-func draw(c event.Config) {
+func onPaint(c config.Event) {
     //gl.Enable(gl.DEPTH_TEST)
     //gl.DepthFunc(gl.LESS)
     //清场
