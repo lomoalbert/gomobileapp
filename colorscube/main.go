@@ -5,7 +5,10 @@ import (
     "time"
     "github.com/go-gl/mathgl/mgl32"
     "golang.org/x/mobile/app"
-    "golang.org/x/mobile/event"
+    "golang.org/x/mobile/event/config"
+    "golang.org/x/mobile/event/lifecycle"
+    "golang.org/x/mobile/event/paint"
+    "golang.org/x/mobile/event/touch"
     "golang.org/x/mobile/exp/app/debug"
     "golang.org/x/mobile/geom"
     "golang.org/x/mobile/gl"
@@ -15,10 +18,12 @@ import (
     "io/ioutil"
     "golang.org/x/mobile/asset"
     "golang.org/x/mobile/exp/gl/glutil"
+    "golang.org/x/mobile/exp/f32"
 )
 
 type Shape struct {
     buf     gl.Buffer
+    colorbuf     gl.Buffer
     texture gl.Texture
 }
 
@@ -28,6 +33,7 @@ type Shader struct {
     projection   gl.Uniform
     view         gl.Uniform
     model        gl.Uniform
+    color        gl.Attrib
 }
 
 type Engine struct {
@@ -47,14 +53,21 @@ func (e *Engine) Start() {
 
     e.shape.buf = gl.CreateBuffer()
     gl.BindBuffer(gl.ARRAY_BUFFER, e.shape.buf)
-    fmt.Println(EncodeObject(cubeData))
-    gl.BufferData(gl.ARRAY_BUFFER, EncodeObject(cubeData), gl.STATIC_DRAW)
-
+    gl.BufferData(gl.ARRAY_BUFFER, cubeData, gl.STATIC_DRAW)
+    fmt.Println(len(cubeData))
     e.shader.vertCoord = gl.GetAttribLocation(e.shader.program, "vertCoord")
-
     e.shader.projection = gl.GetUniformLocation(e.shader.program, "projection")
     e.shader.view = gl.GetUniformLocation(e.shader.program, "view")
     e.shader.model = gl.GetUniformLocation(e.shader.program, "model")
+
+    e.shader.color = gl.GetAttribLocation(e.shader.program, "color")
+    e.shape.colorbuf = gl.CreateBuffer()
+    gl.BindBuffer(gl.ARRAY_BUFFER, e.shape.colorbuf)
+    gl.BufferData(gl.ARRAY_BUFFER, colorData, gl.STATIC_DRAW)
+    gl.VertexAttribPointer(e.shader.color, colorsPerVertex, gl.FLOAT, false, 4, 0) //更新color值
+    gl.DrawArrays(gl.TRIANGLES, 0, vertexCount)
+
+
 
     e.started = time.Now()
 }
@@ -62,29 +75,22 @@ func (e *Engine) Start() {
 func (e *Engine) Stop() {
     gl.DeleteProgram(e.shader.program)
     gl.DeleteBuffer(e.shape.buf)
+    gl.DeleteBuffer(e.shape.colorbuf)
 }
 
-func (e *Engine) Config(new, old event.Config) {
-    e.touchLoc = geom.Point{new.Width / 2, new.Height / 2}
-}
 
-func (e *Engine) Touch(t event.Touch, c event.Config) {
-    e.touchLoc = t.Loc
-}
-
-func (e *Engine) Draw(c event.Config) {
+func (e *Engine) Draw(c config.Event) {
 
     gl.Enable(gl.DEPTH_TEST)
     gl.DepthFunc(gl.LESS)
 
-    gl.ClearColor(0, 0, 0, 1)
+    gl.ClearColor(0, 0, 1, 1)
     gl.Clear(gl.COLOR_BUFFER_BIT)
     gl.Clear(gl.DEPTH_BUFFER_BIT)
 
     gl.UseProgram(e.shader.program)
 
     m := mgl32.Perspective(0.785, float32(c.Width/c.Height), 0.1, 10.0)
-    //fmt.Println(m,"------")
     gl.UniformMatrix4fv(e.shader.projection, m[:])
 
     eye := mgl32.Vec3{3, 3, 3}
@@ -92,91 +98,143 @@ func (e *Engine) Draw(c event.Config) {
     up := mgl32.Vec3{0, 1, 0}
 
     m = mgl32.LookAtV(eye, center, up)
-    //fmt.Println(m,"+++++++")
     gl.UniformMatrix4fv(e.shader.view, m[:])
 
     m = mgl32.HomogRotate3D(float32(e.touchLoc.X*6.28/c.Width), mgl32.Vec3{0, 1, 0})
-    fmt.Println(m,"=======")
     gl.UniformMatrix4fv(e.shader.model, m[:])
 
     gl.BindBuffer(gl.ARRAY_BUFFER, e.shape.buf)
-
-    coordsPerVertex := 3
-    texCoordsPerVertex := 2
-    vertexCount := len(cubeData) / (coordsPerVertex + texCoordsPerVertex)
-
     gl.EnableVertexAttribArray(e.shader.vertCoord)
-    gl.VertexAttribPointer(e.shader.vertCoord, coordsPerVertex, gl.FLOAT, false, 20, 0) // 4 bytes in float, 5 values per vertex
+    gl.VertexAttribPointer(e.shader.vertCoord, coordsPerVertex, gl.FLOAT, false, 0, 0)
+
+    gl.BindBuffer(gl.ARRAY_BUFFER, e.shape.colorbuf)
+    gl.EnableVertexAttribArray(e.shader.color)
+    gl.VertexAttribPointer(e.shader.color, colorsPerVertex, gl.FLOAT, false, 0, 0) //更新color值
 
     gl.DrawArrays(gl.TRIANGLES, 0, vertexCount)
 
     gl.DisableVertexAttribArray(e.shader.vertCoord)
+    gl.DisableVertexAttribArray(e.shader.color)
 
     debug.DrawFPS(c)
 }
 
-var cubeData = []float32{
-    //  X, Y, Z, U, V
-    // Bottom
-    -1.0, -1.0, -1.0, 0.0, 0.0,
-    1.0, -1.0, -1.0, 1.0, 0.0,
-    -1.0, -1.0, 1.0, 0.0, 1.0,
-    1.0, -1.0, -1.0, 1.0, 0.0,
-    1.0, -1.0, 1.0, 1.0, 1.0,
-    -1.0, -1.0, 1.0, 0.0, 1.0,
+var cubeData = f32.Bytes(binary.LittleEndian,
+    -1.0, -1.0, -1.0,
+    1.0, -1.0, -1.0,
+    -1.0, -1.0, 1.0,
+    1.0, -1.0, -1.0,
+    1.0, -1.0, 1.0,
+    -1.0, -1.0, 1.0,
 
-    // Top
-    -1.0, 1.0, -1.0, 0.0, 0.0,
-    -1.0, 1.0, 1.0, 0.0, 1.0,
-    1.0, 1.0, -1.0, 1.0, 0.0,
-    1.0, 1.0, -1.0, 1.0, 0.0,
-    -1.0, 1.0, 1.0, 0.0, 1.0,
-    1.0, 1.0, 1.0, 1.0, 1.0,
+    -1.0, 1.0, -1.0,
+    -1.0, 1.0, 1.0,
+    1.0, 1.0, -1.0,
+    1.0, 1.0, -1.0,
+    -1.0, 1.0, 1.0,
+    1.0, 1.0, 1.0,
 
-    // Front
-    -1.0, -1.0, 1.0, 1.0, 0.0,
-    1.0, -1.0, 1.0, 0.0, 0.0,
-    -1.0, 1.0, 1.0, 1.0, 1.0,
-    1.0, -1.0, 1.0, 0.0, 0.0,
-    1.0, 1.0, 1.0, 0.0, 1.0,
-    -1.0, 1.0, 1.0, 1.0, 1.0,
+    -1.0, -1.0, 1.0,
+    1.0, -1.0, 1.0,
+    -1.0, 1.0, 1.0,
+    1.0, -1.0, 1.0,
+    1.0, 1.0, 1.0,
+    -1.0, 1.0, 1.0,
 
-    // Back
-    -1.0, -1.0, -1.0, 0.0, 0.0,
-    -1.0, 1.0, -1.0, 0.0, 1.0,
-    1.0, -1.0, -1.0, 1.0, 0.0,
-    1.0, -1.0, -1.0, 1.0, 0.0,
-    -1.0, 1.0, -1.0, 0.0, 1.0,
-    1.0, 1.0, -1.0, 1.0, 1.0,
+    -1.0, -1.0, -1.0,
+    -1.0, 1.0, -1.0,
+    1.0, -1.0, -1.0,
+    1.0, -1.0, -1.0,
+    -1.0, 1.0, -1.0,
+    1.0, 1.0, -1.0,
 
-    // Left
-    -1.0, -1.0, 1.0, 0.0, 1.0,
-    -1.0, 1.0, -1.0, 1.0, 0.0,
-    -1.0, -1.0, -1.0, 0.0, 0.0,
-    -1.0, -1.0, 1.0, 0.0, 1.0,
-    -1.0, 1.0, 1.0, 1.0, 1.0,
-    -1.0, 1.0, -1.0, 1.0, 0.0,
+    -1.0, -1.0, 1.0,
+    -1.0, 1.0, -1.0,
+    -1.0, -1.0, -1.0,
+    -1.0, -1.0, 1.0,
+    -1.0, 1.0, 1.0,
+    -1.0, 1.0, -1.0,
 
-    // Right
-    1.0, -1.0, 1.0, 1.0, 1.0,
-    1.0, -1.0, -1.0, 1.0, 0.0,
-    1.0, 1.0, -1.0, 0.0, 0.0,
-    1.0, -1.0, 1.0, 1.0, 1.0,
-    1.0, 1.0, -1.0, 0.0, 0.0,
-    1.0, 1.0, 1.0, 0.0, 1.0,
-}
+    1.0, -1.0, 1.0,
+    1.0, -1.0, -1.0,
+    1.0, 1.0, -1.0,
+    1.0, -1.0, 1.0,
+    1.0, 1.0, -1.0,
+    1.0, 1.0, 1.0,
+)
+
+var colorData = f32.Bytes(binary.LittleEndian,   //过渡色
+1,1,1,1,
+1,1,0,1,
+1,0,1,1,
+1,1,0,1,
+0,1,0,1,
+1,0,1,1,
+0,0,0,1,
+1,0,0,1,
+0,0,1,1,
+0,0,1,1,
+1,0,0,1,
+0,1,1,1,
+1,0,1,1,
+0,1,0,1,
+1,0,0,1,
+0,1,0,1,
+0,1,1,1,
+1,0,0,1,
+1,1,1,1,
+0,0,0,1,
+1,1,0,1,
+1,1,0,1,
+0,0,0,1,
+0,0,1,1,
+1,0,1,1,
+0,0,0,1,
+1,1,1,1,
+1,0,1,1,
+1,0,0,1,
+0,0,0,1,
+0,1,0,1,
+1,1,0,1,
+0,0,1,1,
+0,1,0,1,
+0,0,1,1,
+0,1,1,1,
+
+)
+
+
+const (
+    coordsPerVertex = 3 //坐标属性个数 x y z
+    vertexCount     = 36 //总点数
+    colorsPerVertex = 4 //颜色属性个数 r g b a
+)
 
 func main() {
     e := Engine{}
-    app.Run(app.Callbacks{
-        Start:  e.Start,
-        Stop:   e.Stop,
-        Draw:   e.Draw,
-        Touch:  e.Touch,
-        Config: e.Config,
+    app.Main(func(a app.App) {
+        var c config.Event
+        for eve := range a.Events() {
+            switch eve := app.Filter(eve).(type) {
+                case lifecycle.Event:
+                switch eve.Crosses(lifecycle.StageVisible) {
+                    case lifecycle.CrossOn:
+                    e.Start()
+                    case lifecycle.CrossOff:
+                    e.Stop()
+                }
+                case config.Event:
+                c = eve
+                e.touchLoc = geom.Point{c.Width / 2, c.Height / 2}
+                case paint.Event:
+                e.Draw(c)
+                a.EndPaint()
+                case touch.Event:
+                e.touchLoc = eve.Loc
+            }
+        }
     })
 }
-
 
 
 // EncodeObject converts float32 vertices into a LittleEndian byte array.
