@@ -32,7 +32,8 @@ type Shader struct {
     vertCoord    gl.Attrib
     projection   gl.Uniform
     view         gl.Uniform
-    model        gl.Uniform
+    modelx        gl.Uniform
+    modely        gl.Uniform
     color        gl.Attrib
 }
 
@@ -58,7 +59,8 @@ func (e *Engine) Start() {
     e.shader.vertCoord = gl.GetAttribLocation(e.shader.program, "vertCoord")
     e.shader.projection = gl.GetUniformLocation(e.shader.program, "projection")
     e.shader.view = gl.GetUniformLocation(e.shader.program, "view")
-    e.shader.model = gl.GetUniformLocation(e.shader.program, "model")
+    e.shader.modelx = gl.GetUniformLocation(e.shader.program, "modelx")
+    e.shader.modely = gl.GetUniformLocation(e.shader.program, "modely")
 
     e.shader.color = gl.GetAttribLocation(e.shader.program, "color")
     e.shape.colorbuf = gl.CreateBuffer()
@@ -100,8 +102,11 @@ func (e *Engine) Draw(c config.Event) {
     m = mgl32.LookAtV(eye, center, up)
     gl.UniformMatrix4fv(e.shader.view, m[:])
 
-    m = mgl32.HomogRotate3D(float32(e.touchLoc.X*6.28/c.Width), mgl32.Vec3{0, 1, 0})
-    gl.UniformMatrix4fv(e.shader.model, m[:])
+    m = mgl32.HomogRotate3D(float32(e.touchLoc.X*5/c.Width), mgl32.Vec3{0, 1, 0})
+    gl.UniformMatrix4fv(e.shader.modelx, m[:])
+
+    m = mgl32.HomogRotate3D(float32(e.touchLoc.Y*5/c.Height), mgl32.Vec3{1, 0, 0})
+    gl.UniformMatrix4fv(e.shader.modely, m[:])
 
     gl.BindBuffer(gl.ARRAY_BUFFER, e.shape.buf)
     gl.EnableVertexAttribArray(e.shader.vertCoord)
