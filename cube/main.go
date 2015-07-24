@@ -5,7 +5,10 @@ import (
     "time"
     "github.com/go-gl/mathgl/mgl32"
     "golang.org/x/mobile/app"
-    "golang.org/x/mobile/event"
+    "golang.org/x/mobile/event/config"
+    "golang.org/x/mobile/event/lifecycle"
+    "golang.org/x/mobile/event/paint"
+    "golang.org/x/mobile/event/touch"
     "golang.org/x/mobile/exp/app/debug"
     "golang.org/x/mobile/geom"
     "golang.org/x/mobile/gl"
@@ -73,15 +76,8 @@ func (e *Engine) Stop() {
     gl.DeleteBuffer(e.shape.buf)
 }
 
-func (e *Engine) Config(new, old event.Config) {
-    e.touchLoc = geom.Point{new.Width / 2, new.Height / 2}
-}
 
-func (e *Engine) Touch(t event.Touch, c event.Config) {
-    e.touchLoc = t.Loc
-}
-
-func (e *Engine) Draw(c event.Config) {
+func (e *Engine) Draw(c config.Event) {
     since := time.Now().Sub(e.started)
 
     gl.Enable(gl.DEPTH_TEST)
@@ -181,17 +177,32 @@ var cubeData = []float32{
     1.0, 1.0, 1.0, 0.0, 1.0,
 }
 
+
 func main() {
     e := Engine{}
-    app.Run(app.Callbacks{
-        Start:  e.Start,
-        Stop:   e.Stop,
-        Draw:   e.Draw,
-        Touch:  e.Touch,
-        Config: e.Config,
+    app.Main(func(a app.App) {
+        var c config.Event
+        for eve := range a.Events() {
+            switch eve := app.Filter(eve).(type) {
+                case lifecycle.Event:
+                switch eve.Crosses(lifecycle.StageVisible) {
+                    case lifecycle.CrossOn:
+                    e.Start()
+                    case lifecycle.CrossOff:
+                    e.Stop()
+                }
+                case config.Event:
+                c = eve
+                e.touchLoc = geom.Point{c.Width / 2, c.Height / 2}
+                case paint.Event:
+                e.Draw(c)
+                a.EndPaint()
+                case touch.Event:
+                e.touchLoc = eve.Loc
+            }
+        }
     })
 }
-
 
 
 // EncodeObject converts float32 vertices into a LittleEndian byte array.
