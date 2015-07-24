@@ -3,6 +3,8 @@ package main
 import (
     "fmt"
     "time"
+    "encoding/binary"
+    "io/ioutil"
     "github.com/go-gl/mathgl/mgl32"
     "golang.org/x/mobile/app"
     "golang.org/x/mobile/event/config"
@@ -12,8 +14,6 @@ import (
     "golang.org/x/mobile/exp/app/debug"
     "golang.org/x/mobile/geom"
     "golang.org/x/mobile/gl"
-    "encoding/binary"
-    "io/ioutil"
     "golang.org/x/mobile/asset"
     "golang.org/x/mobile/exp/gl/glutil"
     "golang.org/x/mobile/exp/f32"
