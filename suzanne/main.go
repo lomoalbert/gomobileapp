@@ -107,7 +107,7 @@ func (e *Engine) Draw(c config.Event) {
     debug.DrawFPS(c)
 }
 
-var vdata = LoadOBJ("suzanne.obj")
+var vdata = LoadOBJ()
 
 var cubeData = f32.Bytes(binary.LittleEndian,vdata...)
 
@@ -208,8 +208,7 @@ func getf(line string,v [][3]float32) []float32 {
 }
 
 
-func LoadOBJ(filepath string) []float32{
-    fmt.Println(filepath)
+func LoadOBJ() []float32{
     var v [][3]float32
     var f []float32
     lines:=strings.Split(objdata,"\n")
