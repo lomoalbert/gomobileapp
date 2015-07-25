@@ -97,7 +97,7 @@ func (e *Engine) Draw(c config.Event) {
     m = mgl32.HomogRotate3D(float32(e.touchLoc.Y*10/c.Height), mgl32.Vec3{1, 0, 0})
     gl.UniformMatrix4fv(e.shader.modely, m[:])
 
-    gl.Uniform4f(e.shader.color, 0, 0, 0, 0.5)
+    gl.Uniform4f(e.shader.color, 0.2, 0.2, 0.2, 0)
     var vertexCount=len(cubeData)
     gl.BindBuffer(gl.ARRAY_BUFFER, e.shape.buf)
     gl.EnableVertexAttribArray(e.shader.vertCoord)
@@ -107,7 +107,8 @@ func (e *Engine) Draw(c config.Event) {
 
     gl.DisableVertexAttribArray(e.shader.vertCoord)
     ////////////////////////////////////////////////////////////
-    gl.Uniform4f(e.shader.color, 1, 1, 1, 1)
+    gl.Uniform4f(e.shader.color, 0, 0, 1, 1)
+    gl.LineWidth(3)
     vertexCount=len(lineData)
     gl.BindBuffer(gl.ARRAY_BUFFER, e.shape.linebuf)
     gl.EnableVertexAttribArray(e.shader.vertCoord)

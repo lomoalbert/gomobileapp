@@ -23,4 +23,7 @@
 ## linessuzanne
 ![](https://raw.githubusercontent.com/vzever/gomobileapp/master/screenshot/Screenshot%20from%202015-07-25%2014-30-44.png)
 ![](https://raw.githubusercontent.com/vzever/gomobileapp/master/screenshot/Screenshot_2015-07-25-14-30-19.png)
+## suzanne(lines on triangles)
+![](https://raw.githubusercontent.com/vzever/gomobileapp/master/screenshot/Screenshot%20from%202015-07-25%2017-13-52.png)
+![](https://raw.githubusercontent.com/vzever/gomobileapp/master/screenshot/Screenshot_2015-07-25-17-16-04.png)
 
