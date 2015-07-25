@@ -66,7 +66,7 @@ func main() {
                 }
                 case config.Event:
                 c = e
-                touchLoc = geom.Point{c.Width / 2, c.Height / 2}
+                touchLoc = geom.Point{c.Width / 1.5, c.Height / 1.5}
                 case paint.Event:
                 onPaint(c)
                 a.EndPaint()

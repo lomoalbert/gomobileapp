@@ -43,11 +43,11 @@ import (
 )
 
 var (
-    program  gl.Program
+    program gl.Program
     position gl.Attrib
-    scan   gl.Uniform
-    color    gl.Uniform
-    buf      gl.Buffer
+    scan gl.Uniform
+    color gl.Uniform
+    buf gl.Buffer
 
     touchLoc geom.Point
 )
@@ -66,7 +66,7 @@ func main() {
                 }
                 case config.Event:
                 c = e
-                touchLoc = geom.Point{c.Width / 2, c.Height / 2}
+                touchLoc = geom.Point{c.Width / 1.5, c.Height / 1.5}
                 case paint.Event:
                 onPaint(c)
                 a.EndPaint()
@@ -129,11 +129,11 @@ func onPaint(c config.Event) {
     //gl.Uniform4f(offset,5.0,1.0,1.0,1.0 )
     //gl.Uniform2f(offset,offsetx,offsety )//为2参数的uniform变量赋值
     //log.Println("offset:",offsetx,offsety, 0, 0)
-    gl.UniformMatrix4fv(scan,[]float32{
-        float32(touchLoc.X/c.Width*4-2),0,0,0,
-        0,float32(touchLoc.Y/c.Height*4-2),0,0,
-        0,0,0,0,
-        0,0,0,1,
+    gl.UniformMatrix4fv(scan, []float32{
+        float32(touchLoc.X/c.Width*4-2), 0, 0, 0,
+        0, float32(touchLoc.Y/c.Height*4-2), 0, 0,
+        0, 0, 0, 0,
+        0, 0, 0, 1,
     })
     gl.BindBuffer(gl.ARRAY_BUFFER, buf)
     gl.EnableVertexAttribArray(position)
@@ -152,7 +152,7 @@ func onPaint(c config.Event) {
     debug.DrawFPS(c)
 }
 
-var triangleData = f32.Bytes(binary.LittleEndian,   //三角
+var triangleData = f32.Bytes(binary.LittleEndian, //三角
 0.0, 0.5, 0.0, // top left
 -0.5, -0.5, 0.0, // bottom left
 0.5, -0.5, 0.0, // bottom right
@@ -160,7 +160,7 @@ var triangleData = f32.Bytes(binary.LittleEndian,   //三角
 
 const (
     coordsPerVertex = 3 //点坐标
-    vertexCount     = 3 //点数
+    vertexCount = 3 //点数
 )
 
 //两类着色器编程使用GLSL(GL Shader Language，GL着色语言)，它是OpenGL的一部分。与C或Java不同，GLSL必须在运行时编译，这意味着每次启动程序，所有的着色器将重新编译。
