@@ -77,7 +77,7 @@ func (e *Engine) Draw(c config.Event) {
 
     gl.UseProgram(e.shader.program)
 
-    m := mgl32.Perspective(0.785, float32(c.Width/c.Height), 0.1, 10.0)
+    m := mgl32.Perspective(0.6, float32(c.Width/c.Height), 0.1, 10.0)
     gl.UniformMatrix4fv(e.shader.projection, m[:])
 
     eye := mgl32.Vec3{3, 3, 3}
@@ -87,10 +87,10 @@ func (e *Engine) Draw(c config.Event) {
     m = mgl32.LookAtV(eye, center, up)
     gl.UniformMatrix4fv(e.shader.view, m[:])
 
-    m = mgl32.HomogRotate3D(float32(e.touchLoc.X*5/c.Width), mgl32.Vec3{0, 1, 0})
+    m = mgl32.HomogRotate3D(float32(e.touchLoc.X*10/c.Width), mgl32.Vec3{0, 1, 0})
     gl.UniformMatrix4fv(e.shader.modelx, m[:])
 
-    m = mgl32.HomogRotate3D(float32(e.touchLoc.Y*5/c.Height), mgl32.Vec3{1, 0, 0})
+    m = mgl32.HomogRotate3D(float32(e.touchLoc.Y*10/c.Height), mgl32.Vec3{1, 0, 0})
     gl.UniformMatrix4fv(e.shader.modely, m[:])
 
     gl.BindBuffer(gl.ARRAY_BUFFER, e.shape.buf)
@@ -104,49 +104,9 @@ func (e *Engine) Draw(c config.Event) {
     debug.DrawFPS(c)
 }
 
-//var vdata = LoadOBJ()
+var vdata = LoadOBJ()
 
-//var cubeData = f32.Bytes(binary.LittleEndian,vdata...)
-
-var cubeData = f32.Bytes(binary.LittleEndian,   //三角
-0.5,0.5,0.5,
-0.5,0.5,-0.5,
-
-0.5,0.5,-0.5,
-0.5,-0.5,-0.5,
-
-0.5,-0.5,-0.5,
-0.5,-0.5,0.5,
-
-0.5,-0.5,0.5,
-0.5,0.5,0.5,
-
-
--0.5,0.5,0.5,
--0.5,0.5,-0.5,
-
--0.5,0.5,-0.5,
--0.5,-0.5,-0.5,
-
--0.5,-0.5,-0.5,
--0.5,-0.5,0.5,
-
--0.5,-0.5,0.5,
--0.5,0.5,0.5,
-
-0.5,0.5,0.5,
--0.5,0.5,0.5,
-
-0.5,0.5,-0.5,
--0.5,0.5,-0.5,
-
-0.5,-0.5,-0.5,
--0.5,-0.5,-0.5,
-
-0.5,-0.5,0.5,
--0.5,-0.5,0.5,
-
-)
+var cubeData = f32.Bytes(binary.LittleEndian,vdata...)
 
 
 const (
@@ -228,7 +188,7 @@ func getv(line string) [3]float32 {
     checkerr(err)
     v3,err:=strconv.ParseFloat(elems[3],32)
     checkerr(err)
-    return [3]float32{float32(v1),float32(v2),float32(v3),}
+    return [3]float32{float32(v1),float32(v2),float32(v3)}
 }
 
 func getf(line string,v [][3]float32) []float32 {
@@ -238,11 +198,13 @@ func getf(line string,v [][3]float32) []float32 {
         vs := strings.Split(elem,"/")[0]
         vi,err := strconv.Atoi(vs)
         checkerr(err)
-        for _,ft := range v[vi-1]{
-            fv=append(fv,ft)
-        }
+        ft:=v[vi-1]
+        fv=append(fv,ft[0],ft[1],ft[2])
+        fv=append(fv,ft[0],ft[1],ft[2])
     }
-    return fv
+    fmt.Println(fv)
+    fmt.Println("===")
+    return append(fv[3:],fv[:3]...)
 }
 
 
