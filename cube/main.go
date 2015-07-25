@@ -79,6 +79,7 @@ func (e *Engine) Stop() {
 
 func (e *Engine) Draw(c config.Event) {
     since := time.Now().Sub(e.started)
+    //gl.Enable()
 
     gl.Enable(gl.DEPTH_TEST)
     gl.DepthFunc(gl.LESS)

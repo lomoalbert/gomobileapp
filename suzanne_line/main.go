@@ -4,7 +4,6 @@ import (
     "fmt"
     "strings"
     "strconv"
-    "time"
     "encoding/binary"
     "io/ioutil"
     "log"
@@ -40,7 +39,6 @@ type Engine struct {
     shader   Shader
     shape    Shape
     touchLoc geom.Point
-    started  time.Time
 }
 
 func (e *Engine) Start() {
@@ -60,7 +58,6 @@ func (e *Engine) Start() {
     e.shader.modelx = gl.GetUniformLocation(e.shader.program, "modelx")
     e.shader.modely = gl.GetUniformLocation(e.shader.program, "modely")
 
-    e.started = time.Now()
 }
 
 func (e *Engine) Stop() {
@@ -70,9 +67,7 @@ func (e *Engine) Stop() {
 
 
 func (e *Engine) Draw(c config.Event) {
-    var vertexCount=len(vdata)
-    gl.Enable(gl.LIGHTING)
-    gl.Enable(gl.LIGHT0)
+    var vertexCount=len(cubeData)
     gl.Enable(gl.DEPTH_TEST)
     gl.DepthFunc(gl.LESS)
 
@@ -102,16 +97,57 @@ func (e *Engine) Draw(c config.Event) {
     gl.EnableVertexAttribArray(e.shader.vertCoord)
     gl.VertexAttribPointer(e.shader.vertCoord, coordsPerVertex, gl.FLOAT, false, 0, 0)
 
-    gl.DrawArrays(gl.TRIANGLES, 0, vertexCount)
+    gl.DrawArrays(gl.LINES, 0, vertexCount)
 
     gl.DisableVertexAttribArray(e.shader.vertCoord)
 
     debug.DrawFPS(c)
 }
 
-var vdata = LoadOBJ()
+//var vdata = LoadOBJ()
 
-var cubeData = f32.Bytes(binary.LittleEndian,vdata...)
+//var cubeData = f32.Bytes(binary.LittleEndian,vdata...)
+
+var cubeData = f32.Bytes(binary.LittleEndian,   //三角
+0.5,0.5,0.5,
+0.5,0.5,-0.5,
+
+0.5,0.5,-0.5,
+0.5,-0.5,-0.5,
+
+0.5,-0.5,-0.5,
+0.5,-0.5,0.5,
+
+0.5,-0.5,0.5,
+0.5,0.5,0.5,
+
+
+-0.5,0.5,0.5,
+-0.5,0.5,-0.5,
+
+-0.5,0.5,-0.5,
+-0.5,-0.5,-0.5,
+
+-0.5,-0.5,-0.5,
+-0.5,-0.5,0.5,
+
+-0.5,-0.5,0.5,
+-0.5,0.5,0.5,
+
+0.5,0.5,0.5,
+-0.5,0.5,0.5,
+
+0.5,0.5,-0.5,
+-0.5,0.5,-0.5,
+
+0.5,-0.5,-0.5,
+-0.5,-0.5,-0.5,
+
+0.5,-0.5,0.5,
+-0.5,-0.5,0.5,
+
+)
+
 
 const (
     coordsPerVertex = 3 //坐标属性个数 x y z
