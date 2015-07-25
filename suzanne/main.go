@@ -4,6 +4,7 @@ import (
     "fmt"
     "strings"
     "strconv"
+    "time"
     "encoding/binary"
     "io/ioutil"
     "log"
@@ -23,12 +24,13 @@ import (
 
 type Shape struct {
     buf     gl.Buffer
-    texture gl.Texture
+    linebuf gl.Buffer
 }
 
 type Shader struct {
     program      gl.Program
     vertCoord    gl.Attrib
+    color   gl.Uniform
     projection   gl.Uniform
     view         gl.Uniform
     modelx        gl.Uniform
@@ -39,6 +41,7 @@ type Engine struct {
     shader   Shader
     shape    Shape
     touchLoc geom.Point
+    started  time.Time
 }
 
 func (e *Engine) Start() {
@@ -47,15 +50,19 @@ func (e *Engine) Start() {
     if err != nil {
         panic(fmt.Sprintln("LoadProgram failed:", err))
     }
+
     e.shape.buf = gl.CreateBuffer()
     gl.BindBuffer(gl.ARRAY_BUFFER, e.shape.buf)
-    gl.BufferData(gl.ARRAY_BUFFER, linesData, gl.STATIC_DRAW)
+    gl.BufferData(gl.ARRAY_BUFFER, cubeData, gl.STATIC_DRAW)
+    e.shape.linebuf = gl.CreateBuffer()
+    gl.BindBuffer(gl.ARRAY_BUFFER, e.shape.linebuf)
+    gl.BufferData(gl.ARRAY_BUFFER, lineData, gl.STATIC_DRAW)
     e.shader.vertCoord = gl.GetAttribLocation(e.shader.program, "vertCoord")
     e.shader.projection = gl.GetUniformLocation(e.shader.program, "projection")
+    e.shader.color = gl.GetUniformLocation(e.shader.program, "color")
     e.shader.view = gl.GetUniformLocation(e.shader.program, "view")
     e.shader.modelx = gl.GetUniformLocation(e.shader.program, "modelx")
     e.shader.modely = gl.GetUniformLocation(e.shader.program, "modely")
-
 }
 
 func (e *Engine) Stop() {
@@ -65,7 +72,6 @@ func (e *Engine) Stop() {
 
 
 func (e *Engine) Draw(c config.Event) {
-    var vertexCount=len(linesData)
     gl.Enable(gl.DEPTH_TEST)
     gl.DepthFunc(gl.LESS)
 
@@ -75,7 +81,7 @@ func (e *Engine) Draw(c config.Event) {
 
     gl.UseProgram(e.shader.program)
 
-    m := mgl32.Perspective(0.6, float32(c.Width/c.Height), 0.1, 10.0)
+    m := mgl32.Perspective(0.785, float32(c.Width/c.Height), 0.1, 10.0)
     gl.UniformMatrix4fv(e.shader.projection, m[:])
 
     eye := mgl32.Vec3{3, 3, 3}
@@ -91,10 +97,21 @@ func (e *Engine) Draw(c config.Event) {
     m = mgl32.HomogRotate3D(float32(e.touchLoc.Y*10/c.Height), mgl32.Vec3{1, 0, 0})
     gl.UniformMatrix4fv(e.shader.modely, m[:])
 
+    gl.Uniform4f(e.shader.color, 0, 0, 0, 0.5)
+    var vertexCount=len(cubeData)
     gl.BindBuffer(gl.ARRAY_BUFFER, e.shape.buf)
     gl.EnableVertexAttribArray(e.shader.vertCoord)
     gl.VertexAttribPointer(e.shader.vertCoord, coordsPerVertex, gl.FLOAT, false, 0, 0)
 
+    gl.DrawArrays(gl.TRIANGLES, 0, vertexCount)
+
+    gl.DisableVertexAttribArray(e.shader.vertCoord)
+    ////////////////////////////////////////////////////////////
+    gl.Uniform4f(e.shader.color, 1, 1, 1, 1)
+    vertexCount=len(lineData)
+    gl.BindBuffer(gl.ARRAY_BUFFER, e.shape.linebuf)
+    gl.EnableVertexAttribArray(e.shader.vertCoord)
+    gl.VertexAttribPointer(e.shader.vertCoord, coordsPerVertex, gl.FLOAT, false, 0, 0)
     gl.DrawArrays(gl.LINES, 0, vertexCount)
 
     gl.DisableVertexAttribArray(e.shader.vertCoord)
@@ -102,10 +119,10 @@ func (e *Engine) Draw(c config.Event) {
     debug.DrawFPS(c)
 }
 
-var vdata = LoadOBJ_line()
-
-var linesData = f32.Bytes(binary.LittleEndian,vdata...)
-
+var vdata = LoadOBJ_triangles()
+var cubeData = f32.Bytes(binary.LittleEndian,vdata...)
+var ldata = LoadOBJ_lines()
+var lineData = f32.Bytes(binary.LittleEndian,ldata...)
 
 const (
     coordsPerVertex = 3 //坐标属性个数 x y z
@@ -133,7 +150,7 @@ func main() {
                 }
                 case config.Event:
                 c = eve
-                e.touchLoc = geom.Point{c.Width / 2, c.Height / 2}
+                e.touchLoc = geom.Point{c.Width / 1.5, c.Height / 1.5}
                 case paint.Event:
                 e.Draw(c)
                 a.EndPaint()
@@ -189,6 +206,36 @@ func getv(line string) [3]float32 {
     return [3]float32{float32(v1),float32(v2),float32(v3)}
 }
 
+func getf_triangles(line string,v [][3]float32) []float32 {
+    elems := strings.Split(line," ")
+    fv := []float32{}
+    for _,elem := range elems[1:]{
+        vs := strings.Split(elem,"/")[0]
+        vi,err := strconv.Atoi(vs)
+        checkerr(err)
+        ft:=v[vi-1]
+        fv=append(fv,ft[0],ft[1],ft[2])
+    }
+    return fv
+}
+
+
+func LoadOBJ_triangles() []float32{
+    var v [][3]float32
+    var f []float32
+    lines:=strings.Split(objdata,"\n")
+    for _,line := range lines{
+        switch strings.Split(line," ")[0]{
+            case "v":
+            v=append(v,getv(line))
+            case "f":
+            f=append(f,getf_triangles(line,v)...)
+        }
+    }
+    return f
+}
+
+
 func getf_line(line string,v [][3]float32) []float32 {
     elems := strings.Split(line," ")
     fv := []float32{}
@@ -204,7 +251,7 @@ func getf_line(line string,v [][3]float32) []float32 {
 }
 
 
-func LoadOBJ_line() []float32{
+func LoadOBJ_lines() []float32{
     var v [][3]float32
     var f []float32
     lines:=strings.Split(objdata,"\n")
