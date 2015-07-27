@@ -8,7 +8,7 @@ uniform mat4 modely;
 attribute vec3 vertCoord;
 
 
-attribute vec4 color;
+uniform vec4 color;
 varying vec4 vColor;
 
 void main() {

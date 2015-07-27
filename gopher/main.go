@@ -13,7 +13,6 @@ import (
 "golang.org/x/mobile/exp/app/debug"
 "golang.org/x/mobile/geom"
 "golang.org/x/mobile/gl"
-"bytes"
 "encoding/binary"
 _ "image/png"
 "io/ioutil"
@@ -24,8 +23,8 @@ _ "image/png"
 
 type Buf struct{
     vcount    int
-    coord   gl.Buffer
-    color   gl.Buffer
+    coord     gl.Buffer
+    color     []float32
 }
 
 type Shape struct {
@@ -40,7 +39,7 @@ type Shader struct {
     view         gl.Uniform
     modelx        gl.Uniform
     modely        gl.Uniform
-    color        gl.Attrib
+    color        gl.Uniform
 }
 
 type Engine struct {
@@ -82,28 +81,22 @@ func (e *Engine) Start() {
     e.shader.view = gl.GetUniformLocation(e.shader.program, "view")
     e.shader.modelx = gl.GetUniformLocation(e.shader.program, "modelx")
     e.shader.modely = gl.GetUniformLocation(e.shader.program, "modely")
-    e.shader.color = gl.GetAttribLocation(e.shader.program, "color")
+    e.shader.color = gl.GetUniformLocation(e.shader.program, "color")
 
     for _,model := range e.shader.models{
         for _,group := range model.Groups{
             data:=f32.Bytes(binary.LittleEndian,group.Vertexes...)
-            color:=f32.Bytes(binary.LittleEndian,group.Material.Ambient...)
+            color:=group.Material.Ambient
+            fmt.Println(color)
 
-            colorsPerVertex := 4
             vertexCount := len(data)
 
             databuf := gl.CreateBuffer()
-            colorbuf :=gl.CreateBuffer()
-            e.shape.bufs = append(e.shape.bufs,Buf{vertexCount,databuf,colorbuf})
+            e.shape.bufs = append(e.shape.bufs,Buf{vertexCount,databuf,color})
 
             gl.BindBuffer(gl.ARRAY_BUFFER, databuf)
             gl.BufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW)
 
-            gl.BindBuffer(gl.ARRAY_BUFFER, colorbuf)
-            gl.BufferData(gl.ARRAY_BUFFER, color, gl.STATIC_DRAW)
-
-            gl.VertexAttribPointer(e.shader.color, colorsPerVertex, gl.FLOAT, false, 0, 0) //更新color值
-            gl.DrawArrays(gl.TRIANGLES, 0, vertexCount)
 
         }
 
@@ -114,7 +107,6 @@ func (e *Engine) Stop() {
     gl.DeleteProgram(e.shader.program)
     for _,buf := range e.shape.bufs{
         gl.DeleteBuffer(buf.coord)
-        gl.DeleteBuffer(buf.color)
     }
 }
 
@@ -147,20 +139,14 @@ func (e *Engine) Draw(c config.Event) {
     gl.UniformMatrix4fv(e.shader.modely, m[:])
 
     coordsPerVertex :=3
-    colorsPerVertex :=4
     for _,buf := range e.shape.bufs{
         gl.BindBuffer(gl.ARRAY_BUFFER, buf.coord)
         gl.EnableVertexAttribArray(e.shader.vertCoord)
         gl.VertexAttribPointer(e.shader.vertCoord, coordsPerVertex, gl.FLOAT, false, 0, 0)
-
-        gl.BindBuffer(gl.ARRAY_BUFFER, buf.color)
-        gl.EnableVertexAttribArray(e.shader.color)
-        gl.VertexAttribPointer(e.shader.color, colorsPerVertex, gl.FLOAT, false, 0, 0) //更新color值
-
+        gl.Uniform4f(e.shader.color,buf.color[0],buf.color[1],buf.color[2],buf.color[3])
         gl.DrawArrays(gl.TRIANGLES, 0, buf.vcount)
 
         gl.DisableVertexAttribArray(e.shader.vertCoord)
-        gl.DisableVertexAttribArray(e.shader.color)
     }
 
 
@@ -196,18 +182,6 @@ func main() {
 }
 
 
-// EncodeObject converts float32 vertices into a LittleEndian byte array.
-func EncodeObject(vertices ...[]float32) []byte {
-    buf := bytes.Buffer{}
-    for _, v := range vertices {
-        err := binary.Write(&buf, binary.LittleEndian, v)
-        if err != nil {
-            panic(fmt.Sprintln("binary.Write failed:", err))
-        }
-    }
-
-    return buf.Bytes()
-}
 
 func loadAsset(name string) ([]byte, error) {
     f, err := asset.Open(name)
