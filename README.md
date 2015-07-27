@@ -26,4 +26,7 @@
 ## suzanne(lines on triangles)
 ![](https://raw.githubusercontent.com/vzever/gomobileapp/master/screenshot/Screenshot%20from%202015-07-25%2017-13-52.png)
 ![](https://raw.githubusercontent.com/vzever/gomobileapp/master/screenshot/Screenshot_2015-07-25-17-16-04.png)
+## gopher(load from wavefront)
+![](https://raw.githubusercontent.com/vzever/gomobileapp/master/screenshot/Screenshot%20from%202015-07-27%2020-06-22.png)
+![](https://raw.githubusercontent.com/vzever/gomobileapp/master/screenshot/Screenshot_2015-07-28-01-09-22.png)
 
