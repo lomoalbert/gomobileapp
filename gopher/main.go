@@ -65,16 +65,6 @@ func (e *Engine) Start() {
 
     e.shader.models,err = wavefront.Read("gopher.obj")
     check(err)
-    for key,obj := range e.shader.models {
-        fmt.Println(key,obj.Name)
-        for _, group := range obj.Groups {
-            fmt.Printf("\tmaterial name:%#v\n", group.Material.Name)
-            fmt.Printf("\tcolor:%#v\n", group.Material.Ambient)
-            fmt.Printf("\tVertexes:%#v  %v\n", group.Vertexes[:10],len(group.Vertexes))
-
-        }
-
-    }
 
     e.shader.vertCoord = gl.GetAttribLocation(e.shader.program, "vertCoord")
     e.shader.projection = gl.GetUniformLocation(e.shader.program, "projection")
@@ -87,8 +77,6 @@ func (e *Engine) Start() {
         for _,group := range model.Groups{
             data:=f32.Bytes(binary.LittleEndian,group.Vertexes...)
             color:=group.Material.Ambient
-            fmt.Println(color)
-
             vertexCount := len(data)
 
             databuf := gl.CreateBuffer()
@@ -132,10 +120,10 @@ func (e *Engine) Draw(c config.Event) {
     m = mgl32.LookAtV(eye, center, up)
     gl.UniformMatrix4fv(e.shader.view, m[:])
 
-    m = mgl32.HomogRotate3D(float32(e.touchLoc.X*5/c.Width), mgl32.Vec3{0, 1, 0})
+    m = mgl32.HomogRotate3D(float32(e.touchLoc.X*10/c.Width), mgl32.Vec3{0, 1, 0})
     gl.UniformMatrix4fv(e.shader.modelx, m[:])
 
-    m = mgl32.HomogRotate3D(float32(e.touchLoc.Y*5/c.Height), mgl32.Vec3{1, 0, 0})
+    m = mgl32.HomogRotate3D(float32(e.touchLoc.Y*10/c.Height), mgl32.Vec3{1, 0, 0})
     gl.UniformMatrix4fv(e.shader.modely, m[:])
 
     coordsPerVertex :=3
