@@ -1,32 +1,39 @@
 package main
 
 import (
-    "fmt"
-    "time"
-    "github.com/go-gl/mathgl/mgl32"
-    "golang.org/x/mobile/app"
-    "golang.org/x/mobile/event/config"
-    "golang.org/x/mobile/event/lifecycle"
-    "golang.org/x/mobile/event/paint"
-    "golang.org/x/mobile/event/touch"
-    "golang.org/x/mobile/exp/app/debug"
-    "golang.org/x/mobile/geom"
-    "golang.org/x/mobile/gl"
-    "bytes"
-    "encoding/binary"
-    _ "image/png"
-    "io/ioutil"
-    "golang.org/x/mobile/asset"
-    "golang.org/x/mobile/exp/gl/glutil"
-    "golang.org/x/mobile/exp/f32"
+"fmt"
+"time"
+"github.com/vzever/wavefront"
+"github.com/go-gl/mathgl/mgl32"
+"golang.org/x/mobile/app"
+"golang.org/x/mobile/event/config"
+"golang.org/x/mobile/event/lifecycle"
+"golang.org/x/mobile/event/paint"
+"golang.org/x/mobile/event/touch"
+"golang.org/x/mobile/exp/app/debug"
+"golang.org/x/mobile/geom"
+"golang.org/x/mobile/gl"
+"bytes"
+"encoding/binary"
+_ "image/png"
+"io/ioutil"
+"golang.org/x/mobile/asset"
+"golang.org/x/mobile/exp/gl/glutil"
+"golang.org/x/mobile/exp/f32"
 )
 
+type Buf struct{
+    vcount    int
+    coord   gl.Buffer
+    color   gl.Buffer
+}
+
 type Shape struct {
-    buf     gl.Buffer
-    colorbuf     gl.Buffer
+    bufs     []Buf
 }
 
 type Shader struct {
+    models       map[string]*wavefront.Object
     program      gl.Program
     vertCoord    gl.Attrib
     projection   gl.Uniform
@@ -43,6 +50,12 @@ type Engine struct {
     started  time.Time
 }
 
+func check(err error){
+    if err != nil{
+        panic(err.Error())
+    }
+}
+
 func (e *Engine) Start() {
     var err error
 
@@ -51,32 +64,58 @@ func (e *Engine) Start() {
         panic(fmt.Sprintln("LoadProgram failed:", err))
     }
 
-    e.shape.buf = gl.CreateBuffer()
-    gl.BindBuffer(gl.ARRAY_BUFFER, e.shape.buf)
-    gl.BufferData(gl.ARRAY_BUFFER, cubeData, gl.STATIC_DRAW)
-    fmt.Println(len(cubeData))
+    e.shader.models,err = wavefront.Read("gopher.obj")
+    check(err)
+    for key,obj := range e.shader.models {
+        fmt.Println(key,obj.Name)
+        for _, group := range obj.Groups {
+            fmt.Printf("\tmaterial name:%#v\n", group.Material.Name)
+            fmt.Printf("\tcolor:%#v\n", group.Material.Ambient)
+            fmt.Printf("\tVertexes:%#v  %v\n", group.Vertexes[:10],len(group.Vertexes))
+
+        }
+
+    }
+
     e.shader.vertCoord = gl.GetAttribLocation(e.shader.program, "vertCoord")
     e.shader.projection = gl.GetUniformLocation(e.shader.program, "projection")
     e.shader.view = gl.GetUniformLocation(e.shader.program, "view")
     e.shader.modelx = gl.GetUniformLocation(e.shader.program, "modelx")
     e.shader.modely = gl.GetUniformLocation(e.shader.program, "modely")
-
     e.shader.color = gl.GetAttribLocation(e.shader.program, "color")
-    e.shape.colorbuf = gl.CreateBuffer()
-    gl.BindBuffer(gl.ARRAY_BUFFER, e.shape.colorbuf)
-    gl.BufferData(gl.ARRAY_BUFFER, colorData, gl.STATIC_DRAW)
-    gl.VertexAttribPointer(e.shader.color, colorsPerVertex, gl.FLOAT, false, 4, 0) //更新color值
-    gl.DrawArrays(gl.TRIANGLES, 0, vertexCount)
 
+    for _,model := range e.shader.models{
+        for _,group := range model.Groups{
+            data:=f32.Bytes(binary.LittleEndian,group.Vertexes...)
+            color:=f32.Bytes(binary.LittleEndian,group.Material.Ambient...)
 
+            colorsPerVertex := 4
+            vertexCount := len(data)
 
-    e.started = time.Now()
+            databuf := gl.CreateBuffer()
+            colorbuf :=gl.CreateBuffer()
+            e.shape.bufs = append(e.shape.bufs,Buf{vertexCount,databuf,colorbuf})
+
+            gl.BindBuffer(gl.ARRAY_BUFFER, databuf)
+            gl.BufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW)
+
+            gl.BindBuffer(gl.ARRAY_BUFFER, colorbuf)
+            gl.BufferData(gl.ARRAY_BUFFER, color, gl.STATIC_DRAW)
+
+            gl.VertexAttribPointer(e.shader.color, colorsPerVertex, gl.FLOAT, false, 0, 0) //更新color值
+            gl.DrawArrays(gl.TRIANGLES, 0, vertexCount)
+
+        }
+
+    }
 }
 
 func (e *Engine) Stop() {
     gl.DeleteProgram(e.shader.program)
-    gl.DeleteBuffer(e.shape.buf)
-    gl.DeleteBuffer(e.shape.colorbuf)
+    for _,buf := range e.shape.bufs{
+        gl.DeleteBuffer(buf.coord)
+        gl.DeleteBuffer(buf.color)
+    }
 }
 
 
@@ -85,7 +124,7 @@ func (e *Engine) Draw(c config.Event) {
     gl.Enable(gl.DEPTH_TEST)
     gl.DepthFunc(gl.LESS)
 
-    gl.ClearColor(0, 0, 1, 1)
+    gl.ClearColor(0.2, 0.2, 0.2, 1)
     gl.Clear(gl.COLOR_BUFFER_BIT)
     gl.Clear(gl.DEPTH_BUFFER_BIT)
 
@@ -107,115 +146,31 @@ func (e *Engine) Draw(c config.Event) {
     m = mgl32.HomogRotate3D(float32(e.touchLoc.Y*5/c.Height), mgl32.Vec3{1, 0, 0})
     gl.UniformMatrix4fv(e.shader.modely, m[:])
 
-    gl.BindBuffer(gl.ARRAY_BUFFER, e.shape.buf)
-    gl.EnableVertexAttribArray(e.shader.vertCoord)
-    gl.VertexAttribPointer(e.shader.vertCoord, coordsPerVertex, gl.FLOAT, false, 0, 0)
+    coordsPerVertex :=3
+    colorsPerVertex :=4
+    for _,buf := range e.shape.bufs{
+        gl.BindBuffer(gl.ARRAY_BUFFER, buf.coord)
+        gl.EnableVertexAttribArray(e.shader.vertCoord)
+        gl.VertexAttribPointer(e.shader.vertCoord, coordsPerVertex, gl.FLOAT, false, 0, 0)
 
-    gl.BindBuffer(gl.ARRAY_BUFFER, e.shape.colorbuf)
-    gl.EnableVertexAttribArray(e.shader.color)
-    gl.VertexAttribPointer(e.shader.color, colorsPerVertex, gl.FLOAT, false, 0, 0) //更新color值
+        gl.BindBuffer(gl.ARRAY_BUFFER, buf.color)
+        gl.EnableVertexAttribArray(e.shader.color)
+        gl.VertexAttribPointer(e.shader.color, colorsPerVertex, gl.FLOAT, false, 0, 0) //更新color值
 
-    gl.DrawArrays(gl.TRIANGLES, 0, vertexCount)
+        gl.DrawArrays(gl.TRIANGLES, 0, buf.vcount)
 
-    gl.DisableVertexAttribArray(e.shader.vertCoord)
-    gl.DisableVertexAttribArray(e.shader.color)
+        gl.DisableVertexAttribArray(e.shader.vertCoord)
+        gl.DisableVertexAttribArray(e.shader.color)
+    }
+
 
     debug.DrawFPS(c)
 }
 
-var cubeData = f32.Bytes(binary.LittleEndian,
-    -1.0, -1.0, -1.0,
-    1.0, -1.0, -1.0,
-    -1.0, -1.0, 1.0,
-    1.0, -1.0, -1.0,
-    1.0, -1.0, 1.0,
-    -1.0, -1.0, 1.0,
-
-    -1.0, 1.0, -1.0,
-    -1.0, 1.0, 1.0,
-    1.0, 1.0, -1.0,
-    1.0, 1.0, -1.0,
-    -1.0, 1.0, 1.0,
-    1.0, 1.0, 1.0,
-
-    -1.0, -1.0, 1.0,
-    1.0, -1.0, 1.0,
-    -1.0, 1.0, 1.0,
-    1.0, -1.0, 1.0,
-    1.0, 1.0, 1.0,
-    -1.0, 1.0, 1.0,
-
-    -1.0, -1.0, -1.0,
-    -1.0, 1.0, -1.0,
-    1.0, -1.0, -1.0,
-    1.0, -1.0, -1.0,
-    -1.0, 1.0, -1.0,
-    1.0, 1.0, -1.0,
-
-    -1.0, -1.0, 1.0,
-    -1.0, 1.0, -1.0,
-    -1.0, -1.0, -1.0,
-    -1.0, -1.0, 1.0,
-    -1.0, 1.0, 1.0,
-    -1.0, 1.0, -1.0,
-
-    1.0, -1.0, 1.0,
-    1.0, -1.0, -1.0,
-    1.0, 1.0, -1.0,
-    1.0, -1.0, 1.0,
-    1.0, 1.0, -1.0,
-    1.0, 1.0, 1.0,
-)
-
-var colorData = f32.Bytes(binary.LittleEndian,   //过渡色
-1,1,1,1,
-1,1,0,1,
-1,0,1,1,
-1,1,0,1,
-0,1,0,1,
-1,0,1,1,
-0,0,0,1,
-1,0,0,1,
-0,0,1,1,
-0,0,1,1,
-1,0,0,1,
-0,1,1,1,
-1,0,1,1,
-0,1,0,1,
-1,0,0,1,
-0,1,0,1,
-0,1,1,1,
-1,0,0,1,
-1,1,1,1,
-0,0,0,1,
-1,1,0,1,
-1,1,0,1,
-0,0,0,1,
-0,0,1,1,
-1,0,1,1,
-0,0,0,1,
-1,1,1,1,
-1,0,1,1,
-1,0,0,1,
-0,0,0,1,
-0,1,0,1,
-1,1,0,1,
-0,0,1,1,
-0,1,0,1,
-0,0,1,1,
-0,1,1,1,
-
-)
-
-
-const (
-    coordsPerVertex = 3 //坐标属性个数 x y z
-    vertexCount     = 36 //总点数
-    colorsPerVertex = 4 //颜色属性个数 r g b a
-)
 
 func main() {
     e := Engine{}
+
     app.Main(func(a app.App) {
         var c config.Event
         for eve := range a.Events() {

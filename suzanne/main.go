@@ -68,6 +68,7 @@ func (e *Engine) Start() {
 func (e *Engine) Stop() {
     gl.DeleteProgram(e.shader.program)
     gl.DeleteBuffer(e.shape.buf)
+    gl.DeleteBuffer(e.shape.linebuf)
 }
 
 
@@ -75,7 +76,7 @@ func (e *Engine) Draw(c config.Event) {
     gl.Enable(gl.DEPTH_TEST)
     gl.DepthFunc(gl.LESS)
 
-    gl.ClearColor(0, 0, 0, 1)
+    gl.ClearColor(0.1, 0.1, 0.1, 1)
     gl.Clear(gl.COLOR_BUFFER_BIT)
     gl.Clear(gl.DEPTH_BUFFER_BIT)
 
@@ -97,7 +98,7 @@ func (e *Engine) Draw(c config.Event) {
     m = mgl32.HomogRotate3D(float32(e.touchLoc.Y*10/c.Height), mgl32.Vec3{1, 0, 0})
     gl.UniformMatrix4fv(e.shader.modely, m[:])
 
-    gl.Uniform4f(e.shader.color, 0.2, 0.2, 0.2, 0)
+    gl.Uniform4f(e.shader.color, 0.2, 0.2,0.2, 1)
     var vertexCount=len(cubeData)
     gl.BindBuffer(gl.ARRAY_BUFFER, e.shape.buf)
     gl.EnableVertexAttribArray(e.shader.vertCoord)
@@ -106,17 +107,19 @@ func (e *Engine) Draw(c config.Event) {
     gl.DrawArrays(gl.TRIANGLES, 0, vertexCount)
 
     gl.DisableVertexAttribArray(e.shader.vertCoord)
+    //gl.Disable(gl.DEPTH_TEST)
     ////////////////////////////////////////////////////////////
+    gl.Enable(gl.BLEND)
+    gl.BlendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
     gl.Uniform4f(e.shader.color, 0, 0, 1, 1)
-    gl.LineWidth(3)
+    gl.LineWidth(2.0)
     vertexCount=len(lineData)
     gl.BindBuffer(gl.ARRAY_BUFFER, e.shape.linebuf)
     gl.EnableVertexAttribArray(e.shader.vertCoord)
     gl.VertexAttribPointer(e.shader.vertCoord, coordsPerVertex, gl.FLOAT, false, 0, 0)
     gl.DrawArrays(gl.LINES, 0, vertexCount)
-
     gl.DisableVertexAttribArray(e.shader.vertCoord)
-
+    gl.Disable(gl.BLEND)
     debug.DrawFPS(c)
 }
 

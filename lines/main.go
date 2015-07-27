@@ -117,7 +117,6 @@ func onStop() {
 
 
 func onPaint(c config.Event) {
-
     vertexCount := len(lineData) //点数
     //清场
     gl.ClearColor(1, 1, 1, 1) //设置背景颜色
