@@ -110,7 +110,7 @@ func (e *Engine) Draw(c config.Event) {
 
     gl.UseProgram(e.shader.program)
 
-    m := mgl32.Perspective(1, float32(c.Width/c.Height), 0.1, 10.0)
+    m := mgl32.Perspective(1, float32(c.WidthPt/c.Height), 0.1, 10.0)
     gl.UniformMatrix4fv(e.shader.projection, m[:])
 
     eye := mgl32.Vec3{0, 0, -8}
@@ -120,7 +120,7 @@ func (e *Engine) Draw(c config.Event) {
     m = mgl32.LookAtV(eye, center, up)
     gl.UniformMatrix4fv(e.shader.view, m[:])
 
-    m = mgl32.HomogRotate3D(float32(e.touchLoc.X*10/c.Width), mgl32.Vec3{0, 1, 0})
+    m = mgl32.HomogRotate3D(float32(e.touchLoc.X*10/c.WidthPt), mgl32.Vec3{0, 1, 0})
     gl.UniformMatrix4fv(e.shader.modelx, m[:])
 
     m = mgl32.HomogRotate3D(float32(e.touchLoc.Y/c.Height-0.5)*2, mgl32.Vec3{1, 0, 0})
@@ -158,7 +158,7 @@ func main() {
                 }
                 case config.Event:
                 c = eve
-                e.touchLoc = geom.Point{c.Width / 2, c.Height / 2}
+                e.touchLoc = geom.Point{c.WidthPt / 2, c.Height / 2}
                 case paint.Event:
                 e.Draw(c)
                 a.EndPaint()
