@@ -66,7 +66,7 @@ func main() {
                 }
                 case config.Event:
                 c = e
-                touchLoc = geom.Point{c.Width / 1.5, c.Height / 1.5}
+                touchLoc = geom.Point{c.WidthPt / 1.5, c.HeightPt / 1.5}
                 case paint.Event:
                 onPaint(c)
                 a.EndPaint()
@@ -145,8 +145,8 @@ func onPaint(c config.Event) {
     //gl.Uniform2f(offset,offsetx,offsety )//为2参数的uniform变量赋值
     //log.Println("offset:",offsetx,offsety, 0, 0)
     gl.UniformMatrix4fv(scan,[]float32{
-        float32(touchLoc.X/c.Width*4-2),0,0,0,
-        0,float32(touchLoc.Y/c.Height*4-2),0,0,
+        float32(touchLoc.X/c.WidthPt*4-2),0,0,0,
+        0,float32(touchLoc.Y/c.HeightPt*4-2),0,0,
         0,0,0,0,
         0,0,0,1,
     })

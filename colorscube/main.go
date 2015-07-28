@@ -85,13 +85,13 @@ func (e *Engine) Draw(c config.Event) {
     gl.Enable(gl.DEPTH_TEST)
     gl.DepthFunc(gl.LESS)
 
-    gl.ClearColor(0, 0, 1, 1)
+    gl.ClearColor(0, 0, 0, 1)
     gl.Clear(gl.COLOR_BUFFER_BIT)
     gl.Clear(gl.DEPTH_BUFFER_BIT)
 
     gl.UseProgram(e.shader.program)
 
-    m := mgl32.Perspective(0.785, float32(c.Width/c.Height), 0.1, 10.0)
+    m := mgl32.Perspective(0.785, float32(c.WidthPt/c.HeightPt), 0.1, 10.0)
     gl.UniformMatrix4fv(e.shader.projection, m[:])
 
     eye := mgl32.Vec3{3, 3, 3}
@@ -101,10 +101,10 @@ func (e *Engine) Draw(c config.Event) {
     m = mgl32.LookAtV(eye, center, up)
     gl.UniformMatrix4fv(e.shader.view, m[:])
 
-    m = mgl32.HomogRotate3D(float32(e.touchLoc.X*5/c.Width), mgl32.Vec3{0, 1, 0})
+    m = mgl32.HomogRotate3D(float32(e.touchLoc.X*5/c.WidthPt), mgl32.Vec3{0, 1, 0})
     gl.UniformMatrix4fv(e.shader.modelx, m[:])
 
-    m = mgl32.HomogRotate3D(float32(e.touchLoc.Y*5/c.Height), mgl32.Vec3{1, 0, 0})
+    m = mgl32.HomogRotate3D(float32(e.touchLoc.Y*5/c.HeightPt), mgl32.Vec3{1, 0, 0})
     gl.UniformMatrix4fv(e.shader.modely, m[:])
 
     gl.BindBuffer(gl.ARRAY_BUFFER, e.shape.buf)
@@ -229,7 +229,7 @@ func main() {
                 }
                 case config.Event:
                 c = eve
-                e.touchLoc = geom.Point{c.Width / 2, c.Height / 2}
+                e.touchLoc = geom.Point{c.WidthPt / 2, c.HeightPt / 2}
                 case paint.Event:
                 e.Draw(c)
                 a.EndPaint()
