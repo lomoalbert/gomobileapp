@@ -6,7 +6,7 @@ uniform mat4 modelx;
 uniform mat4 modely;
 
 attribute vec3 vertCoord;
-
+attribute vec2 vertTexCoord;
 
 uniform vec4 color;
 varying vec4 vColor;

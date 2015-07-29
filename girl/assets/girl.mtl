@@ -9,7 +9,7 @@ Ks 0.025000 0.025000 0.025000
 Ni 1.000000
 d 0.000000
 illum 2
-map_Kd G:/Engineering/Blender/girl/tex_kami.png
+map_Kd tex_kami.png
 
 newmtl polySurface1SG
 Ns 96.078431
@@ -19,7 +19,7 @@ Ks 0.020000 0.020000 0.020000
 Ni 1.000000
 d 0.000000
 illum 2
-map_Kd G:/Engineering/Blender/girl/tex_hada.png
+map_Kd tex_hada.png
 
 newmtl polySurface22SG
 Ns 96.078431
@@ -29,7 +29,7 @@ Ks 0.015000 0.015000 0.015000
 Ni 1.000000
 d 0.000000
 illum 2
-map_Kd G:/Engineering/Blender/girl/tex_white2.png
+map_Kd tex_white2.png
 
 newmtl polySurface36SG
 Ns 96.078431
@@ -39,7 +39,7 @@ Ks 0.045000 0.045000 0.045000
 Ni 1.000000
 d 0.000000
 illum 2
-map_Kd G:/Engineering/Blender/girl/tex_op.png
+map_Kd tex_op.png
 
 newmtl polySurface38SG
 Ns 96.078431
@@ -58,7 +58,7 @@ Ks 0.020000 0.020000 0.020000
 Ni 1.000000
 d 0.000000
 illum 2
-map_Kd G:/Engineering/Blender/girl/tex_kao.png
+map_Kd tex_kao.png
 
 newmtl polySurface4SG
 Ns 96.078431
@@ -68,7 +68,7 @@ Ks 0.020000 0.020000 0.020000
 Ni 1.000000
 d 0.000000
 illum 2
-map_Kd G:/Engineering/Blender/girl/tex_furi.png
+map_Kd tex_furi.png
 
 newmtl polySurface4SG1
 Ns 96.078431
@@ -78,7 +78,7 @@ Ks 0.095000 0.095000 0.095000
 Ni 1.000000
 d 0.000000
 illum 2
-map_Kd G:/Engineering/Blender/girl/tex_white.png
+map_Kd tex_white.png
 
 newmtl polySurface5SG
 Ns 96.078431
@@ -88,7 +88,7 @@ Ks 0.030000 0.030000 0.030000
 Ni 1.000000
 d 0.000000
 illum 2
-map_Kd G:/Engineering/Blender/girl/tex_white.png
+map_Kd tex_white.png
 
 newmtl polySurface73SG
 Ns 96.078431
@@ -107,7 +107,7 @@ Ks 0.030000 0.030000 0.030000
 Ni 1.000000
 d 0.000000
 illum 2
-map_Kd G:/Engineering/Blender/girl/tex_ribbon.png
+map_Kd tex_ribbon.png
 
 newmtl polySurface7SG
 Ns 96.078431
@@ -126,4 +126,4 @@ Ks 0.150000 0.150000 0.150000
 Ni 1.000000
 d 0.000000
 illum 2
-map_Kd G:/Engineering/Blender/girl/tex_white2.png
+map_Kd tex_white2.png

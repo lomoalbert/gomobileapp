@@ -1,45 +1,52 @@
 package main
 
 import (
-"fmt"
-"time"
-"github.com/vzever/wavefront"
-"github.com/go-gl/mathgl/mgl32"
-"golang.org/x/mobile/app"
-"golang.org/x/mobile/event/config"
-"golang.org/x/mobile/event/lifecycle"
-"golang.org/x/mobile/event/paint"
-"golang.org/x/mobile/event/touch"
-"golang.org/x/mobile/exp/app/debug"
-"golang.org/x/mobile/geom"
-"golang.org/x/mobile/gl"
-"encoding/binary"
-_ "image/png"
-"io/ioutil"
-"golang.org/x/mobile/asset"
-"golang.org/x/mobile/exp/gl/glutil"
-"golang.org/x/mobile/exp/f32"
+    "fmt"
+    "time"
+    "github.com/vzever/wavefront"
+    "github.com/go-gl/mathgl/mgl32"
+    "golang.org/x/mobile/app"
+    "golang.org/x/mobile/event/config"
+    "golang.org/x/mobile/event/lifecycle"
+    "golang.org/x/mobile/event/paint"
+    "golang.org/x/mobile/event/touch"
+    "golang.org/x/mobile/exp/app/debug"
+    "golang.org/x/mobile/geom"
+    "golang.org/x/mobile/gl"
+    "encoding/binary"
+    "image"
+    image_draw "image/draw"
+    _ "image/png"
+    "io/ioutil"
+    "golang.org/x/mobile/asset"
+    "golang.org/x/mobile/exp/gl/glutil"
+    "golang.org/x/mobile/exp/f32"
 )
 
-type Buf struct{
+type Obj struct {
     vcount    int
     coord     gl.Buffer
     color     []float32
+    useuv       bool
+    tex       gl.Texture
+    uvcoord     gl.Buffer
 }
 
 type Shape struct {
-    bufs     []Buf
+    Objs     []Obj
 }
 
 type Shader struct {
     models       map[string]*wavefront.Object
     program      gl.Program
     vertCoord    gl.Attrib
+    vertTexCoord gl.Attrib
     projection   gl.Uniform
     view         gl.Uniform
     modelx        gl.Uniform
     modely        gl.Uniform
     color        gl.Uniform
+    useuv       gl.Uniform
 }
 
 type Engine struct {
@@ -49,8 +56,8 @@ type Engine struct {
     started  time.Time
 }
 
-func check(err error){
-    if err != nil{
+func check(err error) {
+    if err != nil {
         panic(err.Error())
     }
 }
@@ -63,28 +70,43 @@ func (e *Engine) Start() {
         panic(fmt.Sprintln("LoadProgram failed:", err))
     }
 
-    e.shader.models,err = wavefront.Read("girl.obj")
+    e.shader.models, err = wavefront.Read("girl.obj")
     check(err)
 
     e.shader.vertCoord = gl.GetAttribLocation(e.shader.program, "vertCoord")
+    e.shader.vertTexCoord = gl.GetAttribLocation(e.shader.program, "vertTexCoord")
     e.shader.projection = gl.GetUniformLocation(e.shader.program, "projection")
     e.shader.view = gl.GetUniformLocation(e.shader.program, "view")
     e.shader.modelx = gl.GetUniformLocation(e.shader.program, "modelx")
     e.shader.modely = gl.GetUniformLocation(e.shader.program, "modely")
     e.shader.color = gl.GetUniformLocation(e.shader.program, "color")
+    e.shader.useuv= gl.GetUniformLocation(e.shader.program, "useuv")
 
-    for _,model := range e.shader.models{
-        for _,group := range model.Groups{
-            data:=f32.Bytes(binary.LittleEndian,group.Vertexes...)
-            color:=group.Material.Ambient
+    for _, model := range e.shader.models {
+        for _, group := range model.Groups {
+            //颜色
+            color := group.Material.Ambient
+            //顶点
+            data := f32.Bytes(binary.LittleEndian, group.Vertexes...)
             vertexCount := len(data)
-
             databuf := gl.CreateBuffer()
-            e.shape.bufs = append(e.shape.bufs,Buf{vertexCount,databuf,color})
-
             gl.BindBuffer(gl.ARRAY_BUFFER, databuf)
             gl.BufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW)
+            //UV坐标
+            textcoords := f32.Bytes(binary.LittleEndian, group.Textcoords...)
+            uvbuf := gl.CreateBuffer()
+            gl.BindBuffer(gl.ARRAY_BUFFER, uvbuf)
+            gl.BufferData(gl.ARRAY_BUFFER, textcoords, gl.STATIC_DRAW)
+            //贴图文件
+            var useuv bool
+            tex, err := LoadTexture(group.Material.Texturefile)
+            if err !=nil {
+                useuv = false
+            }else {
+                useuv = true
 
+            }
+            e.shape.Objs = append(e.shape.Objs, Obj{vcount:vertexCount, coord:databuf, color:color, useuv:useuv, uvcoord:uvbuf,tex:tex})
 
         }
 
@@ -93,7 +115,7 @@ func (e *Engine) Start() {
 
 func (e *Engine) Stop() {
     gl.DeleteProgram(e.shader.program)
-    for _,buf := range e.shape.bufs{
+    for _, buf := range e.shape.Objs {
         gl.DeleteBuffer(buf.coord)
     }
 }
@@ -126,14 +148,28 @@ func (e *Engine) Draw(c config.Event) {
     m = mgl32.HomogRotate3D(float32(e.touchLoc.Y/c.HeightPt-0.5)*2, mgl32.Vec3{1, 0, 0})
     gl.UniformMatrix4fv(e.shader.modely, m[:])
 
-    coordsPerVertex :=3
-    for _,buf := range e.shape.bufs{
-        gl.BindBuffer(gl.ARRAY_BUFFER, buf.coord)
+    coordsPerVertex := 3
+    for _, obj := range e.shape.Objs {
+        gl.BindBuffer(gl.ARRAY_BUFFER, obj.coord)
         gl.EnableVertexAttribArray(e.shader.vertCoord)
-        gl.VertexAttribPointer(e.shader.vertCoord, coordsPerVertex, gl.FLOAT, false, 0, 0)
-        gl.Uniform4f(e.shader.color,buf.color[0],buf.color[1],buf.color[2],buf.color[3])
-        gl.DrawArrays(gl.TRIANGLES, 0, buf.vcount)
 
+        gl.VertexAttribPointer(e.shader.vertCoord, coordsPerVertex, gl.FLOAT, false, 0, 0)
+
+        if obj.useuv{
+            gl.Uniform1i()
+            texCoordsPerVertex := 2
+            gl.EnableVertexAttribArray(e.shader.vertTexCoord)
+            gl.VertexAttribPointer(e.shader.vertTexCoord, texCoordsPerVertex, gl.FLOAT, false, 0, 0)
+
+            gl.BindTexture(gl.TEXTURE_2D, obj.tex)
+        }else{
+            gl.Uniform4f(e.shader.color, obj.color[0], obj.color[1], obj.color[2], obj.color[3])
+        }
+
+        gl.DrawArrays(gl.TRIANGLES, 0, obj.vcount)
+        if obj.useuv{
+            gl.DisableVertexAttribArray(e.shader.vertTexCoord)
+        }
         gl.DisableVertexAttribArray(e.shader.vertCoord)
     }
 
@@ -193,5 +229,38 @@ func LoadProgram(vertexAsset, fragmentAsset string) (p gl.Program, err error) {
     }
 
     p, err = glutil.CreateProgram(string(vertexSrc), string(fragmentSrc))
+    return
+}
+
+
+func LoadTexture(name string) (tex gl.Texture, err error) {
+    imgFile, err := asset.Open(name)
+    if err != nil {
+        return
+    }
+    img, _, err := image.Decode(imgFile)
+    if err != nil {
+        return
+    }
+
+    rgba := image.NewRGBA(img.Bounds())
+    image_draw.Draw(rgba, rgba.Bounds(), img, image.Point{0, 0}, image_draw.Src)
+
+    tex = gl.CreateTexture()
+    gl.ActiveTexture(gl.TEXTURE0)
+    gl.BindTexture(gl.TEXTURE_2D, tex)
+    gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
+    gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
+    gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
+    gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
+    gl.TexImage2D(
+    gl.TEXTURE_2D,
+    0,
+    rgba.Rect.Size().X,
+    rgba.Rect.Size().Y,
+    gl.RGBA,
+    gl.UNSIGNED_BYTE,
+    rgba.Pix)
+
     return
 }
