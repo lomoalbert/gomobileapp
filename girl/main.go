@@ -88,7 +88,7 @@ func (e *Engine) Start() {
             color := group.Material.Ambient
             //顶点
             data := f32.Bytes(binary.LittleEndian, group.Vertexes...)
-            vertexCount := len(data)
+            vertexCount := len(group.Vertexes)/3
             databuf := gl.CreateBuffer()
             gl.BindBuffer(gl.ARRAY_BUFFER, databuf)
             gl.BufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW)
@@ -104,7 +104,6 @@ func (e *Engine) Start() {
                 useuv = false
             }else {
                 useuv = true
-
             }
             e.shape.Objs = append(e.shape.Objs, Obj{vcount:vertexCount, coord:databuf, color:color, useuv:useuv, uvcoord:uvbuf,tex:tex})
 
@@ -132,20 +131,20 @@ func (e *Engine) Draw(c config.Event) {
 
     gl.UseProgram(e.shader.program)
 
-    m := mgl32.Perspective(1, float32(c.WidthPt/c.HeightPt), 0.1, 10.0)
+    m := mgl32.Perspective(0.785, float32(c.WidthPt/c.HeightPt), 0.1, 10.0)
     gl.UniformMatrix4fv(e.shader.projection, m[:])
 
-    eye := mgl32.Vec3{0, 0, -8}
+    eye := mgl32.Vec3{0,0 , 8}
     center := mgl32.Vec3{0, 0, 0}
     up := mgl32.Vec3{0, 1, 0}
 
     m = mgl32.LookAtV(eye, center, up)
     gl.UniformMatrix4fv(e.shader.view, m[:])
 
-    m = mgl32.HomogRotate3D(float32(e.touchLoc.X*10/c.WidthPt), mgl32.Vec3{0, 1, 0})
+    m = mgl32.HomogRotate3D(float32(e.touchLoc.X/c.WidthPt-0.5)*10, mgl32.Vec3{0, 1, 0})
     gl.UniformMatrix4fv(e.shader.modelx, m[:])
 
-    m = mgl32.HomogRotate3D(float32(e.touchLoc.Y/c.HeightPt-0.5)*2, mgl32.Vec3{1, 0, 0})
+    m = mgl32.HomogRotate3D(float32(e.touchLoc.Y/c.HeightPt-0.5), mgl32.Vec3{1, 0, 0})
     gl.UniformMatrix4fv(e.shader.modely, m[:])
 
     coordsPerVertex := 3
@@ -153,19 +152,20 @@ func (e *Engine) Draw(c config.Event) {
         gl.BindBuffer(gl.ARRAY_BUFFER, obj.coord)
         gl.EnableVertexAttribArray(e.shader.vertCoord)
 
-        gl.VertexAttribPointer(e.shader.vertCoord, coordsPerVertex, gl.FLOAT, false, 0, 0)
+        gl.VertexAttribPointer(e.shader.vertCoord, coordsPerVertex, gl.FLOAT, false, 12, 0)
 
-        if obj.useuv{
-            gl.Uniform1i()
+        if obj.useuv==true{
+            gl.Uniform1i(e.shader.useuv,1)
             texCoordsPerVertex := 2
+            gl.BindBuffer(gl.ARRAY_BUFFER, obj.uvcoord)
             gl.EnableVertexAttribArray(e.shader.vertTexCoord)
-            gl.VertexAttribPointer(e.shader.vertTexCoord, texCoordsPerVertex, gl.FLOAT, false, 0, 0)
+            gl.VertexAttribPointer(e.shader.vertTexCoord, texCoordsPerVertex, gl.FLOAT, false, 8, 0)
 
             gl.BindTexture(gl.TEXTURE_2D, obj.tex)
         }else{
+            gl.Uniform1i(e.shader.useuv,0)
             gl.Uniform4f(e.shader.color, obj.color[0], obj.color[1], obj.color[2], obj.color[3])
         }
-
         gl.DrawArrays(gl.TRIANGLES, 0, obj.vcount)
         if obj.useuv{
             gl.DisableVertexAttribArray(e.shader.vertTexCoord)
