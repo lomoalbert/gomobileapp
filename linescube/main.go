@@ -176,7 +176,7 @@ func main() {
                 e.touchLoc = geom.Point{0, 0}
                 case paint.Event:
                 e.Draw(c)
-                a.EndPaint()
+                a.EndPaint(eve)
                 case touch.Event:
                 e.touchLoc = eve.Loc
             }
