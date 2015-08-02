@@ -9,5 +9,5 @@ attribute vec3 vertCoord;
 
 
 void main() {
-    gl_Position = projection * view * modelx* modely * vec4(vertCoord, 1);
+    gl_Position = projection * view * modely* modelx * vec4(vertCoord, 1);
 }

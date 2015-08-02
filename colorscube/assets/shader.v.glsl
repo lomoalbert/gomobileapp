@@ -12,7 +12,7 @@ attribute vec4 color;
 varying vec4 vColor;
 
 void main() {
-    gl_Position = projection * view * modelx* modely * vec4(vertCoord, 1);
+    gl_Position = projection * view * modely* modelx * vec4(vertCoord, 1);
 
 	vColor = color;
 }
