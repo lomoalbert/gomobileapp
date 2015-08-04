@@ -72,7 +72,7 @@ func (e *Engine) Start() {
         panic(fmt.Sprintln("LoadProgram failed:", err))
     }
 
-    e.shader.models, err = wavefront.Read("girl.obj")
+    e.shader.models, err = wavefront.Read("spiritframe.obj")
     check(err)
 
 
@@ -99,7 +99,6 @@ func (e *Engine) Start() {
             gl.BufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW)
             //UV坐标
             textcoords := f32.Bytes(binary.LittleEndian, group.Textcoords...)
-            fmt.Println(textcoords[:10])
             uvbuf := gl.CreateBuffer()
             gl.BindBuffer(gl.ARRAY_BUFFER, uvbuf)
             gl.BufferData(gl.ARRAY_BUFFER, textcoords, gl.STATIC_DRAW)
@@ -109,8 +108,7 @@ func (e *Engine) Start() {
             gl.BindBuffer(gl.ARRAY_BUFFER, normalbuf)
             gl.BufferData(gl.ARRAY_BUFFER, normals, gl.STATIC_DRAW)
 
-            tex, err := LoadTexture(group.Material.Texturefile)
-            fmt.Println(err)
+            tex, _ := LoadTexture(group.Material.Texturefile)
             e.shape.Objs = append(e.shape.Objs, Obj{vcount:vertexCount, coord:databuf, color:color,  uvcoord:uvbuf, tex:tex,normal:normalbuf})
 
         }
@@ -137,12 +135,12 @@ func (e *Engine) Draw(c config.Event) {
 
     gl.UseProgram(e.shader.program)
 
-    gl.Uniform3fv(e.shader.lightdir,[]float32{-3,0,0})
+    gl.Uniform3fv(e.shader.lightdir,[]float32{0.5,0.5,0.5})
 
     m := mgl32.Perspective(0.785, float32(c.WidthPt/c.HeightPt), 0.1, 10.0)
     gl.UniformMatrix4fv(e.shader.projectionmatrix, m[:])
 
-    eye := mgl32.Vec3{3, 3, 3}
+    eye := mgl32.Vec3{5,4, 5}
     center := mgl32.Vec3{0, 0, 0}
     up := mgl32.Vec3{0, 1, 0}
 

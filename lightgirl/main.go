@@ -135,12 +135,12 @@ func (e *Engine) Draw(c config.Event) {
 
     gl.UseProgram(e.shader.program)
 
-    gl.Uniform3fv(e.shader.lightdir,[]float32{1,0,0})
+    gl.Uniform3fv(e.shader.lightdir,[]float32{0.5,0.5,0.5})
 
     m := mgl32.Perspective(0.785, float32(c.WidthPt/c.HeightPt), 0.1, 10.0)
     gl.UniformMatrix4fv(e.shader.projectionmatrix, m[:])
 
-    eye := mgl32.Vec3{5,2, 5}
+    eye := mgl32.Vec3{5,4, 5}
     center := mgl32.Vec3{0, 0, 0}
     up := mgl32.Vec3{0, 1, 0}
 

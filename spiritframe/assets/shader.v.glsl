@@ -18,7 +18,7 @@ void main(void)
 	vec3 normal =  a_normal; //u_normalMatrix *
 
     // Intensity is lambert without emissive color. al is the ambient, hard coded light factor.
- 	v_intensity = 0.3+ max(dot( u_lightDirection,normal), 0.0);
+ 	v_intensity = 0.3 + max(dot(normal, u_lightDirection), 0.0);
 
 	v_texCoord = a_texCoord;
 
