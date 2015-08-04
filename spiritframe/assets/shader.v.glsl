@@ -1,19 +1,26 @@
 #version 100
+uniform mat4 u_projectionMatrix;
+uniform mat4 u_viewMatrix;
+uniform mat4 u_modelMatrix;
+uniform mat3 u_normalMatrix;
+uniform vec3 u_lightDirection;
 
-uniform mat4 projection;
-uniform mat4 view;
-uniform mat4 modelx;
-uniform mat4 modely;
+attribute vec4 a_vertex;
+attribute vec3 a_normal;
+attribute vec2 a_texCoord;
 
-attribute vec3 vertCoord;
-attribute vec2 vertTexCoord;
-varying vec2 fragTexCoord;
+varying float v_intensity; //强度
+varying vec2 v_texCoord;
 
-uniform vec4 color;
-varying vec4 vColor;
-void main() {
-	vColor = color;
-	fragTexCoord = vertTexCoord;
-    gl_Position = projection * view * modely* modelx * vec4(vertCoord, 1);
+void main(void)
+{
+	// Now the normal is in world space, as we pass the light in world space.
+	vec3 normal =  a_normal; //u_normalMatrix *
 
+    // Intensity is lambert without emissive color. al is the ambient, hard coded light factor.
+ 	v_intensity = 0.3+ max(dot( u_lightDirection,normal), 0.0);
+
+	v_texCoord = a_texCoord;
+
+	gl_Position = u_projectionMatrix*u_viewMatrix * u_modelMatrix * a_vertex;
 }

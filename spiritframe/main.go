@@ -27,9 +27,9 @@ type Obj struct {
     vcount    int
     coord     gl.Buffer
     color     []float32
-    useuv       bool
     tex       gl.Texture
     uvcoord     gl.Buffer
+    normal      gl.Buffer
 }
 
 type Shape struct {
@@ -39,14 +39,16 @@ type Shape struct {
 type Shader struct {
     models       map[string]*wavefront.Object
     program      gl.Program
-    vertCoord    gl.Attrib
-    vertTexCoord gl.Attrib
-    projection   gl.Uniform
-    view         gl.Uniform
-    modelx        gl.Uniform
-    modely        gl.Uniform
-    color        gl.Uniform
-    useuv       gl.Uniform
+
+    vertCoord       gl.Attrib
+    normal          gl.Attrib
+    texcoord        gl.Attrib
+
+    projectionmatrix   gl.Uniform
+    viewmatrix          gl.Uniform
+    modelmatrix         gl.Uniform
+    normalmatrix        gl.Uniform
+    lightdir            gl.Uniform
 }
 
 type Engine struct {
@@ -70,17 +72,20 @@ func (e *Engine) Start() {
         panic(fmt.Sprintln("LoadProgram failed:", err))
     }
 
-    e.shader.models, err = wavefront.Read("spiritframe.obj")
+    e.shader.models, err = wavefront.Read("girl.obj")
     check(err)
 
-    e.shader.vertCoord = gl.GetAttribLocation(e.shader.program, "vertCoord")
-    e.shader.vertTexCoord = gl.GetAttribLocation(e.shader.program, "vertTexCoord")
-    e.shader.projection = gl.GetUniformLocation(e.shader.program, "projection")
-    e.shader.view = gl.GetUniformLocation(e.shader.program, "view")
-    e.shader.modelx = gl.GetUniformLocation(e.shader.program, "modelx")
-    e.shader.modely = gl.GetUniformLocation(e.shader.program, "modely")
-    e.shader.color = gl.GetUniformLocation(e.shader.program, "color")
-    e.shader.useuv= gl.GetUniformLocation(e.shader.program, "useuv")
+
+    e.shader.projectionmatrix =   gl.GetUniformLocation(e.shader.program, "u_projectionMatrix")
+    e.shader.viewmatrix =   gl.GetUniformLocation(e.shader.program, "u_viewMatrix")
+    e.shader.modelmatrix =       gl.GetUniformLocation(e.shader.program, "u_modelMatrix")
+    e.shader.normalmatrix =       gl.GetUniformLocation(e.shader.program, "u_normalMatrix")
+    e.shader.lightdir =     gl.GetUniformLocation(e.shader.program, "u_lightDirection")
+
+    e.shader.vertCoord =    gl.GetAttribLocation(e.shader.program, "a_vertex")
+    e.shader.normal =    gl.GetAttribLocation(e.shader.program, "a_normal")
+    e.shader.texcoord = gl.GetAttribLocation(e.shader.program, "a_texCoord")
+
 
     for _, model := range e.shader.models {
         for _, group := range model.Groups {
@@ -94,18 +99,19 @@ func (e *Engine) Start() {
             gl.BufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW)
             //UV坐标
             textcoords := f32.Bytes(binary.LittleEndian, group.Textcoords...)
+            fmt.Println(textcoords[:10])
             uvbuf := gl.CreateBuffer()
             gl.BindBuffer(gl.ARRAY_BUFFER, uvbuf)
             gl.BufferData(gl.ARRAY_BUFFER, textcoords, gl.STATIC_DRAW)
-            //贴图文件
-            var useuv bool
+            //发现坐标
+            normals := f32.Bytes(binary.LittleEndian, group.Normals...)
+            normalbuf := gl.CreateBuffer()
+            gl.BindBuffer(gl.ARRAY_BUFFER, normalbuf)
+            gl.BufferData(gl.ARRAY_BUFFER, normals, gl.STATIC_DRAW)
+
             tex, err := LoadTexture(group.Material.Texturefile)
-            if err !=nil {
-                useuv = false
-            }else {
-                useuv = true
-            }
-            e.shape.Objs = append(e.shape.Objs, Obj{vcount:vertexCount, coord:databuf, color:color, useuv:useuv, uvcoord:uvbuf,tex:tex})
+            fmt.Println(err)
+            e.shape.Objs = append(e.shape.Objs, Obj{vcount:vertexCount, coord:databuf, color:color,  uvcoord:uvbuf, tex:tex,normal:normalbuf})
 
         }
 
@@ -131,48 +137,45 @@ func (e *Engine) Draw(c config.Event) {
 
     gl.UseProgram(e.shader.program)
 
-    m := mgl32.Perspective(0.785, float32(c.WidthPt/c.HeightPt), 0.1, 10.0)
-    gl.UniformMatrix4fv(e.shader.projection, m[:])
+    gl.Uniform3fv(e.shader.lightdir,[]float32{-3,0,0})
 
-    eye := mgl32.Vec3{0,0 , 0.01}
+    m := mgl32.Perspective(0.785, float32(c.WidthPt/c.HeightPt), 0.1, 10.0)
+    gl.UniformMatrix4fv(e.shader.projectionmatrix, m[:])
+
+    eye := mgl32.Vec3{3, 3, 3}
     center := mgl32.Vec3{0, 0, 0}
     up := mgl32.Vec3{0, 1, 0}
 
     m = mgl32.LookAtV(eye, center, up)
-    gl.UniformMatrix4fv(e.shader.view, m[:])
+    gl.UniformMatrix4fv(e.shader.viewmatrix, m[:])
 
     m = mgl32.HomogRotate3D(float32(e.touchLoc.X/c.WidthPt-0.5)*6.28, mgl32.Vec3{0, 1, 0})
-    gl.UniformMatrix4fv(e.shader.modelx, m[:])
+    gl.UniformMatrix4fv(e.shader.modelmatrix, m[:])
 
-    m = mgl32.HomogRotate3D(float32(e.touchLoc.Y/c.HeightPt-0.5)*3.14, mgl32.Vec3{1, 0, 0})
-    gl.UniformMatrix4fv(e.shader.modely, m[:])
 
     coordsPerVertex := 3
     for _, obj := range e.shape.Objs {
         gl.BindBuffer(gl.ARRAY_BUFFER, obj.coord)
         gl.EnableVertexAttribArray(e.shader.vertCoord)
-
         gl.VertexAttribPointer(e.shader.vertCoord, coordsPerVertex, gl.FLOAT, false, 12, 0)
 
-        if obj.useuv==true{
-            gl.Uniform1i(e.shader.useuv,1)
-            texCoordsPerVertex := 2
-            gl.BindBuffer(gl.ARRAY_BUFFER, obj.uvcoord)
-            gl.EnableVertexAttribArray(e.shader.vertTexCoord)
-            gl.VertexAttribPointer(e.shader.vertTexCoord, texCoordsPerVertex, gl.FLOAT, false, 8, 0)
+        texCoordsPerVertex := 2
+        gl.BindBuffer(gl.ARRAY_BUFFER, obj.uvcoord)
+        gl.EnableVertexAttribArray(e.shader.texcoord)
+        gl.VertexAttribPointer(e.shader.texcoord, texCoordsPerVertex, gl.FLOAT, false, 8, 0)
 
-            gl.BindTexture(gl.TEXTURE_2D, obj.tex)
-        }else{
-            gl.Uniform1i(e.shader.useuv,0)
-            gl.Uniform4f(e.shader.color, obj.color[0], obj.color[1], obj.color[2], obj.color[3])
-        }
+        gl.BindBuffer(gl.ARRAY_BUFFER,obj.normal)
+        gl.EnableVertexAttribArray(e.shader.normal)
+        gl.VertexAttribPointer(e.shader.normal, 3, gl.FLOAT, false, 12, 0)
+
+        gl.BindTexture(gl.TEXTURE_2D, obj.tex)
+
         gl.DrawArrays(gl.TRIANGLES, 0, obj.vcount)
-        if obj.useuv{
-            gl.DisableVertexAttribArray(e.shader.vertTexCoord)
-        }
+
+        gl.DisableVertexAttribArray(e.shader.texcoord)
+        gl.DisableVertexAttribArray(e.shader.normal)
         gl.DisableVertexAttribArray(e.shader.vertCoord)
     }
-
 
     debug.DrawFPS(c)
 }

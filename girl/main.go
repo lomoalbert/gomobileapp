@@ -141,10 +141,10 @@ func (e *Engine) Draw(c config.Event) {
     m = mgl32.LookAtV(eye, center, up)
     gl.UniformMatrix4fv(e.shader.view, m[:])
 
-    m = mgl32.HomogRotate3D(float32(e.touchLoc.X/c.WidthPt-0.5)*10, mgl32.Vec3{0, 1, 0})
+    m = mgl32.HomogRotate3D(float32(e.touchLoc.X/c.WidthPt-0.5)*3.14*2, mgl32.Vec3{0, 1, 0})
     gl.UniformMatrix4fv(e.shader.modelx, m[:])
 
-    m = mgl32.HomogRotate3D(float32(e.touchLoc.Y/c.HeightPt-0.5), mgl32.Vec3{1, 0, 0})
+    m = mgl32.HomogRotate3D(float32(e.touchLoc.Y/c.HeightPt-0.5)*3.14, mgl32.Vec3{1, 0, 0})
     gl.UniformMatrix4fv(e.shader.modely, m[:])
 
     coordsPerVertex := 3

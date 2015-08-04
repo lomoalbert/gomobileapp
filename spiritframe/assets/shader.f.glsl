@@ -1,15 +1,12 @@
 #version 100
-precision mediump float;
-varying vec4 vColor;
-uniform sampler2D tex;
-uniform bool useuv;
-varying vec2 fragTexCoord;
+precision lowp float;
 
-void main() {
-	if (useuv){
-		gl_FragColor = texture2D(tex, fragTexCoord);
-	}else{
-		gl_FragColor = vColor;
-	}
+uniform sampler2D u_texture;
 
+varying float v_intensity;
+varying vec2 v_texCoord;
+
+void main(void)
+{
+	gl_FragColor = texture2D(u_texture, v_texCoord) * v_intensity;
 }
