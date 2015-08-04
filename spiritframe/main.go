@@ -140,7 +140,7 @@ func (e *Engine) Draw(c config.Event) {
     m := mgl32.Perspective(0.785, float32(c.WidthPt/c.HeightPt), 0.1, 10.0)
     gl.UniformMatrix4fv(e.shader.projectionmatrix, m[:])
 
-    eye := mgl32.Vec3{5,4, 5}
+    eye := mgl32.Vec3{1,1, 1}
     center := mgl32.Vec3{0, 0, 0}
     up := mgl32.Vec3{0, 1, 0}
 
@@ -148,6 +148,7 @@ func (e *Engine) Draw(c config.Event) {
     gl.UniformMatrix4fv(e.shader.viewmatrix, m[:])
 
     m = mgl32.HomogRotate3D(float32(e.touchLoc.X/c.WidthPt-0.5)*6.28, mgl32.Vec3{0, 1, 0})
+    fmt.Println(m)
     gl.UniformMatrix4fv(e.shader.modelmatrix, m[:])
 
 
