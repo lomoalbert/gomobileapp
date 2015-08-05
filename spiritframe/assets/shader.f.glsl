@@ -8,5 +8,5 @@ varying vec2 v_texCoord;
 
 void main(void)
 {
-	gl_FragColor = vec4(0.8,0.8,0.8,1) * v_intensity;
+	gl_FragColor = vec4(1,1,1,1) * v_intensity;
 }

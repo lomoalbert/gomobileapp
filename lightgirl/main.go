@@ -11,7 +11,6 @@ import (
     "golang.org/x/mobile/event/paint"
     "golang.org/x/mobile/event/touch"
     "golang.org/x/mobile/exp/app/debug"
-    "golang.org/x/mobile/geom"
     "golang.org/x/mobile/gl"
     "encoding/binary"
     "image"
@@ -54,7 +53,8 @@ type Shader struct {
 type Engine struct {
     shader   Shader
     shape    Shape
-    touchLoc geom.Point
+    touchx  float32
+    touchy  float32
     started  time.Time
 }
 
@@ -147,7 +147,7 @@ func (e *Engine) Draw(c config.Event) {
     m = mgl32.LookAtV(eye, center, up)
     gl.UniformMatrix4fv(e.shader.viewmatrix, m[:])
 
-    m = mgl32.HomogRotate3D(float32(e.touchLoc.X/c.WidthPt-0.5)*6.28, mgl32.Vec3{0, 1, 0})
+    m = mgl32.HomogRotate3D((e.touchx/float32(c.WidthPx)-0.5)*6.28, mgl32.Vec3{0, 1, 0})
     gl.UniformMatrix4fv(e.shader.modelmatrix, m[:])
 
 
@@ -195,12 +195,14 @@ func main() {
                 }
                 case config.Event:
                 c = eve
-                e.touchLoc = geom.Point{c.WidthPt / 2, c.HeightPt / 2}
+                e.touchx = float32(c.WidthPt / 2)
+                e.touchy = float32(c.HeightPt / 2)
                 case paint.Event:
                 e.Draw(c)
                 a.EndPaint(eve)
                 case touch.Event:
-                e.touchLoc = eve.Loc
+                e.touchx = eve.X
+                e.touchy = eve.Y
             }
         }
     })

@@ -2,7 +2,6 @@ package main
 
 import (
     "fmt"
-    "time"
     "github.com/vzever/wavefront"
     "github.com/go-gl/mathgl/mgl32"
     "golang.org/x/mobile/app"
@@ -11,7 +10,6 @@ import (
     "golang.org/x/mobile/event/paint"
     "golang.org/x/mobile/event/touch"
     "golang.org/x/mobile/exp/app/debug"
-    "golang.org/x/mobile/geom"
     "golang.org/x/mobile/gl"
     "encoding/binary"
     "image"
@@ -47,6 +45,7 @@ type Shader struct {
     projectionmatrix   gl.Uniform
     viewmatrix          gl.Uniform
     modelmatrix         gl.Uniform
+    modelmatrixy         gl.Uniform
     normalmatrix        gl.Uniform
     lightdir            gl.Uniform
 }
@@ -54,8 +53,8 @@ type Shader struct {
 type Engine struct {
     shader   Shader
     shape    Shape
-    touchLoc geom.Point
-    started  time.Time
+    touchx  float32
+    touchy  float32
 }
 
 func check(err error) {
@@ -79,6 +78,7 @@ func (e *Engine) Start() {
     e.shader.projectionmatrix =   gl.GetUniformLocation(e.shader.program, "u_projectionMatrix")
     e.shader.viewmatrix =   gl.GetUniformLocation(e.shader.program, "u_viewMatrix")
     e.shader.modelmatrix =       gl.GetUniformLocation(e.shader.program, "u_modelMatrix")
+    e.shader.modelmatrixy =       gl.GetUniformLocation(e.shader.program, "u_modelMatrixy")
     e.shader.normalmatrix =       gl.GetUniformLocation(e.shader.program, "u_normalMatrix")
     e.shader.lightdir =     gl.GetUniformLocation(e.shader.program, "u_lightDirection")
 
@@ -129,27 +129,30 @@ func (e *Engine) Draw(c config.Event) {
     gl.Enable(gl.DEPTH_TEST)
     gl.DepthFunc(gl.LESS)
 
-    gl.ClearColor(0.5, 0.5, 0.5, 1)
+    gl.ClearColor(0.2, 0.2, 0.2, 1)
     gl.Clear(gl.COLOR_BUFFER_BIT)
     gl.Clear(gl.DEPTH_BUFFER_BIT)
 
     gl.UseProgram(e.shader.program)
 
-    gl.Uniform3fv(e.shader.lightdir,[]float32{0.5,0.5,0.5})
+    gl.Uniform3fv(e.shader.lightdir,[]float32{0.5,0.6,0.7})
 
-    m := mgl32.Perspective(0.785, float32(c.WidthPt/c.HeightPt), 0.1, 10.0)
+    m := mgl32.Perspective(0.785,float32(c.WidthPx/c.HeightPx) , 0.01, 10.0)//透视投影:广角,比例,近,远
     gl.UniformMatrix4fv(e.shader.projectionmatrix, m[:])
 
-    eye := mgl32.Vec3{1,1, 1}
+    eye := mgl32.Vec3{0,0,1}
     center := mgl32.Vec3{0, 0, 0}
     up := mgl32.Vec3{0, 1, 0}
 
     m = mgl32.LookAtV(eye, center, up)
     gl.UniformMatrix4fv(e.shader.viewmatrix, m[:])
 
-    m = mgl32.HomogRotate3D(float32(e.touchLoc.X/c.WidthPt-0.5)*6.28, mgl32.Vec3{0, 1, 0})
-    fmt.Println(m)
+    m = mgl32.HomogRotate3D((e.touchx/float32(c.WidthPx)-0.5)*6.28, mgl32.Vec3{0, 1, 0}) //6.28  360度旋转
     gl.UniformMatrix4fv(e.shader.modelmatrix, m[:])
+
+    m = mgl32.HomogRotate3D((e.touchy/float32(c.HeightPx)-0.5)*3.14, mgl32.Vec3{1, 0, 0}) //3.14 180度旋转
+    gl.UniformMatrix4fv(e.shader.modelmatrixy, m[:])
+
 
 
     coordsPerVertex := 3
@@ -196,12 +199,14 @@ func main() {
                 }
                 case config.Event:
                 c = eve
-                e.touchLoc = geom.Point{c.WidthPt / 2, c.HeightPt / 2}
+                e.touchx = float32(c.WidthPx)/2
+                e.touchy = float32(c.HeightPx)/2
                 case paint.Event:
                 e.Draw(c)
                 a.EndPaint(eve)
                 case touch.Event:
-                e.touchLoc = eve.Loc
+                e.touchx = eve.X
+                e.touchy = eve.Y
             }
         }
     })
