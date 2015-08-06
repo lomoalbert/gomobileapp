@@ -48,6 +48,7 @@ type Shader struct {
     modelmatrix         gl.Uniform
     normalmatrix        gl.Uniform
     lightdir            gl.Uniform
+    lightmatrix         gl.Uniform
 }
 
 type Engine struct {
@@ -81,6 +82,7 @@ func (e *Engine) Start() {
     e.shader.modelmatrix =       gl.GetUniformLocation(e.shader.program, "u_modelMatrix")
     e.shader.normalmatrix =       gl.GetUniformLocation(e.shader.program, "u_normalMatrix")
     e.shader.lightdir =     gl.GetUniformLocation(e.shader.program, "u_lightDirection")
+    e.shader.lightmatrix =     gl.GetUniformLocation(e.shader.program, "u_lightmatrix")
 
     e.shader.vertCoord =    gl.GetAttribLocation(e.shader.program, "a_vertex")
     e.shader.normal =    gl.GetAttribLocation(e.shader.program, "a_normal")
@@ -149,6 +151,10 @@ func (e *Engine) Draw(c config.Event) {
 
     m = mgl32.HomogRotate3D((e.touchx/float32(c.WidthPx)-0.5)*6.28, mgl32.Vec3{0, 1, 0})
     gl.UniformMatrix4fv(e.shader.modelmatrix, m[:])
+
+    m = mgl32.HomogRotate3D((e.touchx/float32(c.WidthPx)-0.5)*6.28, mgl32.Vec3{0, -1, 0})
+    gl.UniformMatrix4fv(e.shader.lightmatrix, m[:])
+
 
 
     coordsPerVertex := 3

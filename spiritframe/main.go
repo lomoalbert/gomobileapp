@@ -48,6 +48,7 @@ type Shader struct {
     modelmatrixy         gl.Uniform
     normalmatrix        gl.Uniform
     lightdir            gl.Uniform
+    lightmatrix         gl.Uniform
 }
 
 type Engine struct {
@@ -81,6 +82,8 @@ func (e *Engine) Start() {
     e.shader.modelmatrixy =       gl.GetUniformLocation(e.shader.program, "u_modelMatrixy")
     e.shader.normalmatrix =       gl.GetUniformLocation(e.shader.program, "u_normalMatrix")
     e.shader.lightdir =     gl.GetUniformLocation(e.shader.program, "u_lightDirection")
+    e.shader.lightmatrix =     gl.GetUniformLocation(e.shader.program, "u_lightmatrix")
+
 
     e.shader.vertCoord =    gl.GetAttribLocation(e.shader.program, "a_vertex")
     e.shader.normal =    gl.GetAttribLocation(e.shader.program, "a_normal")
@@ -135,9 +138,9 @@ func (e *Engine) Draw(c config.Event) {
 
     gl.UseProgram(e.shader.program)
 
-    gl.Uniform3fv(e.shader.lightdir,[]float32{0.5,0.6,0.7})
+    gl.Uniform3fv(e.shader.lightdir,[]float32{0.5,0.5,0.5})
 
-    m := mgl32.Perspective(0.785,float32(c.WidthPx/c.HeightPx) , 0.01, 10.0)//透视投影:广角,比例,近,远
+    m := mgl32.Perspective(1,float32(c.WidthPt/c.HeightPt) , 0.01, 100.0)//透视投影:广角,比例,近,远
     gl.UniformMatrix4fv(e.shader.projectionmatrix, m[:])
 
     eye := mgl32.Vec3{0,0,1}
@@ -147,10 +150,13 @@ func (e *Engine) Draw(c config.Event) {
     m = mgl32.LookAtV(eye, center, up)
     gl.UniformMatrix4fv(e.shader.viewmatrix, m[:])
 
-    m = mgl32.HomogRotate3D((e.touchx/float32(c.WidthPx)-0.5)*6.28, mgl32.Vec3{0, 1, 0}) //6.28  360度旋转
+    m = mgl32.HomogRotate3D((e.touchx/float32(c.WidthPt)-0.5)*6.28, mgl32.Vec3{0, 1, 0}) //6.28  360度旋转
     gl.UniformMatrix4fv(e.shader.modelmatrix, m[:])
 
-    m = mgl32.HomogRotate3D((e.touchy/float32(c.HeightPx)-0.5)*3.14, mgl32.Vec3{1, 0, 0}) //3.14 180度旋转
+    m = mgl32.HomogRotate3D((e.touchx/float32(c.WidthPt)-0.5)*6.28, mgl32.Vec3{0, -1, 0})
+    gl.UniformMatrix4fv(e.shader.lightmatrix, m[:])
+
+    m = mgl32.HomogRotate3D((e.touchy/float32(c.HeightPt)-0.5)*3.14, mgl32.Vec3{1, 0, 0}) //3.14 180度旋转
     gl.UniformMatrix4fv(e.shader.modelmatrixy, m[:])
 
 
@@ -199,14 +205,15 @@ func main() {
                 }
                 case config.Event:
                 c = eve
-                e.touchx = float32(c.WidthPx)/2
-                e.touchy = float32(c.HeightPx)/2
+                fmt.Println(c.PixelsPerPt)
+                e.touchx = float32(c.WidthPt)/2
+                e.touchy = float32(c.HeightPt)/2
                 case paint.Event:
                 e.Draw(c)
                 a.EndPaint(eve)
                 case touch.Event:
-                e.touchx = eve.X
-                e.touchy = eve.Y
+                e.touchx = eve.X/c.PixelsPerPt
+                e.touchy = eve.Y/c.PixelsPerPt
             }
         }
     })
