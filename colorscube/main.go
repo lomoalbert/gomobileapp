@@ -39,7 +39,8 @@ type Shader struct {
 type Engine struct {
     shader   Shader
     shape    Shape
-    touchLoc geom.Point
+    touchLocX geom.Pt
+    touchLocY geom.Pt
     started  time.Time
 }
 
@@ -94,17 +95,17 @@ func (e *Engine) Draw(c size.Event) {
     m := mgl32.Perspective(0.785, float32(c.WidthPt/c.HeightPt), 0.1, 10.0)
     gl.UniformMatrix4fv(e.shader.projection, m[:])
 
-    eye := mgl32.Vec3{3, 3, 3}
+    eye := mgl32.Vec3{0, 3, 3}
     center := mgl32.Vec3{0, 0, 0}
     up := mgl32.Vec3{0, 1, 0}
 
     m = mgl32.LookAtV(eye, center, up)
     gl.UniformMatrix4fv(e.shader.view, m[:])
 
-    m = mgl32.HomogRotate3D(float32(e.touchLoc.X*5/c.WidthPt), mgl32.Vec3{0, 1, 0})
+    m = mgl32.HomogRotate3D(float32(e.touchLocX*5/c.WidthPt), mgl32.Vec3{0, 1, 0})
     gl.UniformMatrix4fv(e.shader.modelx, m[:])
 
-    m = mgl32.HomogRotate3D(float32(e.touchLoc.Y*5/c.HeightPt), mgl32.Vec3{1, 0, 0})
+    m = mgl32.HomogRotate3D(float32(e.touchLocY*5/c.HeightPt), mgl32.Vec3{1, 0, 0})
     gl.UniformMatrix4fv(e.shader.modely, m[:])
 
     gl.BindBuffer(gl.ARRAY_BUFFER, e.shape.buf)
@@ -229,12 +230,14 @@ func main() {
                 }
                 case size.Event:
                 c = eve
-                e.touchLoc = geom.Point{c.WidthPt / 2, c.HeightPt / 2}
+                e.touchLocX = c.WidthPt / 2
+                e.touchLocY=c.HeightPt / 2
                 case paint.Event:
                 e.Draw(c)
                 a.EndPaint(eve)
                 case touch.Event:
-                e.touchLoc = eve.Loc
+                e.touchLocX = geom.Pt(eve.X/c.PixelsPerPt)
+                e.touchLocY = geom.Pt(eve.Y/c.PixelsPerPt)
             }
         }
     })

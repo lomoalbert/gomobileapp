@@ -73,7 +73,6 @@ func main() {
                 onPaint(c)
                 a.EndPaint(e)
                 case touch.Event:
-
                 touchLocX = e.X/c.PixelsPerPt
                 touchLocY = e.Y/c.PixelsPerPt
 
