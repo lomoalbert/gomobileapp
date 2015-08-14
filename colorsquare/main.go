@@ -37,7 +37,6 @@ import (
     "golang.org/x/mobile/exp/app/debug"
     "golang.org/x/mobile/exp/f32"
     "golang.org/x/mobile/exp/gl/glutil"
-    "golang.org/x/mobile/geom"
     "golang.org/x/mobile/gl"
 )
 
@@ -49,7 +48,8 @@ var (
     positionbuf      gl.Buffer
     colorbuf      gl.Buffer
 
-    touchLoc geom.Point
+    touchLocX float32
+    touchLocY float32
 )
 
 func main() {
@@ -66,12 +66,14 @@ func main() {
                 }
                 case size.Event:
                 c = e
-                touchLoc = geom.Point{c.WidthPt / 1.5, c.HeightPt / 1.5}
+                touchLocX =float32(c.WidthPt / 1.5)
+                touchLocY =float32(c.HeightPt / 1.5)
                 case paint.Event:
                 onPaint(c)
                 a.EndPaint(e)
                 case touch.Event:
-                touchLoc = e.Loc
+                touchLocX = float32(e.X/c.PixelsPerPt)
+                touchLocY = float32(e.Y/c.PixelsPerPt)
             }
         }
     })
@@ -144,8 +146,8 @@ func onPaint(c size.Event) {
     //gl.Uniform2f(offset,offsetx,offsety )//为2参数的uniform变量赋值
     //log.Println("offset:",offsetx,offsety, 0, 0)
     gl.UniformMatrix4fv(scan,[]float32{
-        float32(touchLoc.X/c.WidthPt*2-1),0,0,0,
-        0,float32(touchLoc.Y/c.HeightPt*2-1),0,0,
+        touchLocX/float32(c.WidthPt)*2-1,0,0,0,
+        0,touchLocY/float32(c.HeightPt)*2-1,0,0,
         0,0,0,0,
         0,0,0,1,
     })
