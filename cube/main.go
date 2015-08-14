@@ -114,7 +114,6 @@ func (e *Engine) Draw(c size.Event) {
     gl.EnableVertexAttribArray(e.shader.vertTexCoord)
     gl.VertexAttribPointer(e.shader.vertTexCoord, texCoordsPerVertex, gl.FLOAT, false, 20, 12)
 
-    fmt.Printf("%#v\n",e.shape.texture)
     gl.BindTexture(gl.TEXTURE_2D, e.shape.texture)
 
     gl.DrawArrays(gl.TRIANGLES, 0, vertexCount)
@@ -196,7 +195,7 @@ func main() {
                 e.Draw(c)
                 a.EndPaint(eve)
                 case touch.Event:
-                e.touchLoc = eve.Loc
+                e.touchLoc = geom.Point{geom.Pt(eve.X),geom.Pt(eve.Y)}
             }
         }
     })
