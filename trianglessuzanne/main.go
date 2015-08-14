@@ -83,7 +83,7 @@ func (e *Engine) Draw(c size.Event) {
     m := mgl32.Perspective(0.785, float32(c.WidthPt/c.HeightPt), 0.1, 10.0)
     gl.UniformMatrix4fv(e.shader.projection, m[:])
 
-    eye := mgl32.Vec3{3, 3, 3}
+    eye := mgl32.Vec3{0, 0, 3}
     center := mgl32.Vec3{0, 0, 0}
     up := mgl32.Vec3{0, 1, 0}
 
@@ -142,7 +142,7 @@ func main() {
                 e.Draw(c)
                 a.EndPaint(eve)
                 case touch.Event:
-                e.touchLoc = eve.Loc
+                e.touchLoc = geom.Point{geom.Pt(eve.X),geom.Pt(eve.Y)}
             }
         }
     })
