@@ -207,8 +207,8 @@ func main() {
                 e.Draw(c)
                 a.EndPaint(eve)
                 case touch.Event:
-                e.touchx = eve.X
-                e.touchy = eve.Y
+                e.touchx = eve.X/c.PixelsPerPt
+                e.touchy = eve.Y/c.PixelsPerPt
             }
         }
     })
