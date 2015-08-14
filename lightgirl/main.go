@@ -6,7 +6,7 @@ import (
     "github.com/vzever/wavefront"
     "github.com/go-gl/mathgl/mgl32"
     "golang.org/x/mobile/app"
-    "golang.org/x/mobile/event/config"
+    "golang.org/x/mobile/event/size"
     "golang.org/x/mobile/event/lifecycle"
     "golang.org/x/mobile/event/paint"
     "golang.org/x/mobile/event/touch"
@@ -126,7 +126,7 @@ func (e *Engine) Stop() {
 }
 
 
-func (e *Engine) Draw(c config.Event) {
+func (e *Engine) Draw(c size.Event) {
 
     gl.Enable(gl.DEPTH_TEST)
     gl.DepthFunc(gl.LESS)
@@ -189,7 +189,7 @@ func main() {
     e := Engine{}
 
     app.Main(func(a app.App) {
-        var c config.Event
+        var c size.Event
         for eve := range a.Events() {
             switch eve := app.Filter(eve).(type) {
                 case lifecycle.Event:
@@ -199,7 +199,7 @@ func main() {
                     case lifecycle.CrossOff:
                     e.Stop()
                 }
-                case config.Event:
+                case size.Event:
                 c = eve
                 e.touchx = float32(c.WidthPt / 2)
                 e.touchy = float32(c.HeightPt / 2)

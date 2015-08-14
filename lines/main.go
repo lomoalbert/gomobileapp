@@ -31,7 +31,7 @@ import (
     "log"
 
     "golang.org/x/mobile/app"
-    "golang.org/x/mobile/event/config"
+    "golang.org/x/mobile/event/size"
     "golang.org/x/mobile/event/lifecycle"
     "golang.org/x/mobile/event/paint"
     "golang.org/x/mobile/event/touch"
@@ -54,7 +54,7 @@ var (
 
 func main() {
     app.Main(func(a app.App) {
-        var c config.Event
+        var c size.Event
         for e := range a.Events() {
             switch e := app.Filter(e).(type) {
                 case lifecycle.Event:
@@ -64,7 +64,7 @@ func main() {
                     case lifecycle.CrossOff:
                     onStop()
                 }
-                case config.Event:
+                case size.Event:
                 c = e
                 touchLoc = geom.Point{c.WidthPt / 1.5, c.HeightPt / 1.5}
                 case paint.Event:
@@ -116,7 +116,7 @@ func onStop() {
 }
 
 
-func onPaint(c config.Event) {
+func onPaint(c size.Event) {
     vertexCount := len(lineData) //点数
     //清场
     gl.ClearColor(1, 1, 1, 1) //设置背景颜色
