@@ -205,7 +205,6 @@ func main() {
                 }
                 case size.Event:
                 c = eve
-                fmt.Println(c.PixelsPerPt)
                 e.touchx = float32(c.WidthPt)/2
                 e.touchy = float32(c.HeightPt)/2
                 case paint.Event:
