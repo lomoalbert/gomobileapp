@@ -199,7 +199,7 @@ func main() {
                 e.Draw(c)
                 a.EndPaint(eve)
                 case touch.Event:
-                e.touchLoc = eve.Loc
+                e.touchLoc = geom.Point{geom.Pt(eve.X),geom.Pt(eve.Y)}
             }
         }
     })
