@@ -45,7 +45,6 @@ type Shader struct {
     projectionmatrix   gl.Uniform
     viewmatrix          gl.Uniform
     modelmatrix         gl.Uniform
-    modelmatrixy         gl.Uniform
     normalmatrix        gl.Uniform
     lightdir            gl.Uniform
     lightmatrix         gl.Uniform
@@ -79,11 +78,9 @@ func (e *Engine) Start() {
     e.shader.projectionmatrix =   gl.GetUniformLocation(e.shader.program, "u_projectionMatrix")
     e.shader.viewmatrix =   gl.GetUniformLocation(e.shader.program, "u_viewMatrix")
     e.shader.modelmatrix =       gl.GetUniformLocation(e.shader.program, "u_modelMatrix")
-    e.shader.modelmatrixy =       gl.GetUniformLocation(e.shader.program, "u_modelMatrixy")
     e.shader.normalmatrix =       gl.GetUniformLocation(e.shader.program, "u_normalMatrix")
     e.shader.lightdir =     gl.GetUniformLocation(e.shader.program, "u_lightDirection")
     e.shader.lightmatrix =     gl.GetUniformLocation(e.shader.program, "u_lightmatrix")
-
 
     e.shader.vertCoord =    gl.GetAttribLocation(e.shader.program, "a_vertex")
     e.shader.normal =    gl.GetAttribLocation(e.shader.program, "a_normal")
@@ -123,6 +120,8 @@ func (e *Engine) Stop() {
     gl.DeleteProgram(e.shader.program)
     for _, buf := range e.shape.Objs {
         gl.DeleteBuffer(buf.coord)
+        gl.DeleteBuffer(buf.uvcoord)
+        gl.DeleteBuffer(buf.normal)
     }
 }
 
@@ -132,32 +131,29 @@ func (e *Engine) Draw(c size.Event) {
     gl.Enable(gl.DEPTH_TEST)
     gl.DepthFunc(gl.LESS)
 
-    gl.ClearColor(0.2, 0.2, 0.2, 1)
+    gl.ClearColor(0.5, 0.8, 0.8, 1)
     gl.Clear(gl.COLOR_BUFFER_BIT)
     gl.Clear(gl.DEPTH_BUFFER_BIT)
 
     gl.UseProgram(e.shader.program)
 
-    gl.Uniform3fv(e.shader.lightdir,[]float32{0.5,0.5,0.5})
+    gl.Uniform3fv(e.shader.lightdir,[]float32{0.5,0.6,0.7})
 
-    m := mgl32.Perspective(1,float32(c.WidthPt/c.HeightPt) , 0.01, 100.0)//透视投影:广角,比例,近,远
+    m := mgl32.Perspective(1.3, float32(c.WidthPt/c.HeightPt), 0.1, 10.0)
     gl.UniformMatrix4fv(e.shader.projectionmatrix, m[:])
 
-    eye := mgl32.Vec3{0,0,1}
+    eye := mgl32.Vec3{0,0,0.2}
     center := mgl32.Vec3{0, 0, 0}
     up := mgl32.Vec3{0, 1, 0}
 
     m = mgl32.LookAtV(eye, center, up)
     gl.UniformMatrix4fv(e.shader.viewmatrix, m[:])
 
-    m = mgl32.HomogRotate3D((e.touchx/float32(c.WidthPt)-0.5)*6.28, mgl32.Vec3{0, 1, 0}) //6.28  360度旋转
+    m = mgl32.HomogRotate3D((e.touchx/float32(c.WidthPt)-0.5)*6.28, mgl32.Vec3{0, 1, 0})
     gl.UniformMatrix4fv(e.shader.modelmatrix, m[:])
 
     m = mgl32.HomogRotate3D((e.touchx/float32(c.WidthPt)-0.5)*6.28, mgl32.Vec3{0, -1, 0})
     gl.UniformMatrix4fv(e.shader.lightmatrix, m[:])
-
-    m = mgl32.HomogRotate3D((e.touchy/float32(c.HeightPt)-0.5)*3.14, mgl32.Vec3{1, 0, 0}) //3.14 180度旋转
-    gl.UniformMatrix4fv(e.shader.modelmatrixy, m[:])
 
 
 
@@ -205,8 +201,8 @@ func main() {
                 }
                 case size.Event:
                 c = eve
-                e.touchx = float32(c.WidthPt)/2
-                e.touchy = float32(c.HeightPt)/2
+                e.touchx = float32(c.WidthPt / 2)
+                e.touchy = float32(c.HeightPt / 2)
                 case paint.Event:
                 e.Draw(c)
                 a.EndPaint(eve)
