@@ -3,7 +3,7 @@ package main
 import (
     "fmt"
     "time"
-    "github.com/vzever/wavefront"
+    "github.com/lomoalbert/wavefront"
     "github.com/go-gl/mathgl/mgl32"
     "golang.org/x/mobile/app"
     "golang.org/x/mobile/event/size"
