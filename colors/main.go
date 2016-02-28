@@ -28,29 +28,29 @@ package main
 
 import (
 	"encoding/binary"
-	"log"
 	"golang.org/x/mobile/app"
-	"golang.org/x/mobile/event/size"
 	"golang.org/x/mobile/event/lifecycle"
 	"golang.org/x/mobile/event/paint"
+	"golang.org/x/mobile/event/size"
 	"golang.org/x/mobile/event/touch"
 	"golang.org/x/mobile/exp/app/debug"
 	"golang.org/x/mobile/exp/f32"
 	"golang.org/x/mobile/exp/gl/glutil"
 	"golang.org/x/mobile/gl"
+	"log"
 )
 
 var (
-	images   *glutil.Images
-	fps      *debug.FPS
-	program gl.Program
-	position gl.Attrib
-	scan gl.Uniform
-	color gl.Attrib
+	images      *glutil.Images
+	fps         *debug.FPS
+	program     gl.Program
+	position    gl.Attrib
+	scan        gl.Uniform
+	color       gl.Attrib
 	positionbuf gl.Buffer
-	colorbuf gl.Buffer
-	touchLocX float32
-	touchLocY float32
+	colorbuf    gl.Buffer
+	touchLocX   float32
+	touchLocY   float32
 )
 
 func main() {
@@ -96,7 +96,7 @@ func main() {
 
 func onStart(glctx gl.Context) {
 	var err error
-	program, err = glutil.CreateProgram(glctx,vertexShader, fragmentShader)
+	program, err = glutil.CreateProgram(glctx, vertexShader, fragmentShader)
 	if err != nil {
 		log.Printf("error creating GL program: %v", err)
 		return
@@ -114,10 +114,9 @@ func onStart(glctx gl.Context) {
 	因此varying变量在vertex和fragment shader二者之间的声明必须是一致的。application不能使用此变量。
 	*/
 
-
-	position = glctx.GetAttribLocation(program, "position")//获取位置对象(索引)
-	color = glctx.GetAttribLocation(program, "color") // 获取颜色对象(索引)
-	scan = glctx.GetUniformLocation(program, "scan") // 获取偏移对象(索引)
+	position = glctx.GetAttribLocation(program, "position") //获取位置对象(索引)
+	color = glctx.GetAttribLocation(program, "color")       // 获取颜色对象(索引)
+	scan = glctx.GetUniformLocation(program, "scan")        // 获取缩放对象(索引)
 
 	positionbuf = glctx.CreateBuffer()
 	glctx.BindBuffer(gl.ARRAY_BUFFER, positionbuf)
@@ -126,12 +125,9 @@ func onStart(glctx gl.Context) {
 	colorbuf = glctx.CreateBuffer()
 	glctx.BindBuffer(gl.ARRAY_BUFFER, colorbuf)
 	glctx.BufferData(gl.ARRAY_BUFFER, colorData, gl.STATIC_DRAW)
-	glctx.VertexAttribPointer(color, colorsPerVertex, gl.FLOAT, false, 0, 0) //更新color值
-	glctx.DrawArrays(gl.TRIANGLES, 0, vertexCount)
 
 	images = glutil.NewImages(glctx)
 	fps = debug.NewFPS(images)
-
 
 	// fmt.Println(position.String(),color.String(),offset.String())//Attrib(0) Uniform(1) Uniform(0)
 	// TODO(crawshaw): the debug package needs to put GL state init here
@@ -164,33 +160,35 @@ func onPaint(glctx gl.Context, sz size.Event) {
 	//gl.Uniform2f(offset,offsetx,offsety )//为2参数的uniform变量赋值
 	//log.Println("offset:",offsetx,offsety, 0, 0)
 	glctx.UniformMatrix4fv(scan, []float32{
-		touchLocX / float32(sz.WidthPt) * 4 - 2, 0, 0, 0,
-		0, touchLocY / float32(sz.HeightPt) * 4 - 2, 0, 0,
+		touchLocX/float32(sz.WidthPt)*4 - 2, 0, 0, 0,
+		0, touchLocY/float32(sz.HeightPt)*4 - 2, 0, 0,
 		0, 0, 0, 0,
 		0, 0, 0, 1,
 	})
-	/*glVertexAttribPointer 指定了渲染时索引值为 index 的顶点属性数组的数据格式和位置。调用gl.vertexAttribPointer()方法，把顶点着色器中某个属性相对应的通用属性索引连接到绑定的webGLBUffer对象上。
+	/*glVertexAttribPointer 指定了渲染时索引值为 index 的顶点属性数组的数据格式和位置。调用gl.vertexAttribPointer()方法，
+		把顶点着色器中某个属性相对应的通用属性索引连接到绑定的webGLBUffer对象上。
 	index 指定要修改的顶点属性的索引值
 	size    指定每个顶点属性的组件数量。必须为1、2、3或者4。初始值为4。（如position是由3个（x,y,z）组成，而颜色是4个（r,g,b,a））
-	type    指定数组中每个组件的数据类型。可用的符号常量有GL_BYTE, GL_UNSIGNED_BYTE, GL_SHORT,GL_UNSIGNED_SHORT, GL_FIXED, 和 GL_FLOAT，初始值为GL_FLOAT。
+	type    指定数组中每个组件的数据类型。可用的符号常量有GL_BYTE, GL_UNSIGNED_BYTE, GL_SHORT,GL_UNSIGNED_SHORT, GL_FIXED,
+		和 GL_FLOAT，初始值为GL_FLOAT。
 	normalized  指定当被访问时，固定点数据值是否应该被归一化（GL_TRUE）或者直接转换为固定点值（GL_FALSE）。
 	stride  指定连续顶点属性之间的偏移量。如果为0，那么顶点属性会被理解为：它们是紧密排列在一起的。初始值为0。
 	pointer 指定第一个组件在数组的第一个顶点属性中的偏移量。该数组与GL_ARRAY_BUFFER绑定，储存于缓冲区中。初始值为0；
 	*/
 
 	glctx.BindBuffer(gl.ARRAY_BUFFER, positionbuf)
-
 	glctx.EnableVertexAttribArray(position)
-	glctx.VertexAttribPointer(position, coordsPerVertex, gl.FLOAT, false, 0, 0) //更新position值
-	//gl.DisableVertexAttribArray(position)
-
+	defer glctx.DisableVertexAttribArray(position)//必须全部缓存导入完成后再关闭
+	glctx.VertexAttribPointer(position, coordsPerVertex, gl.FLOAT, false, 0, 0) //导入position缓存
+	glctx.DrawArrays(gl.TRIANGLES, 0, vertexCount)
 
 	glctx.BindBuffer(gl.ARRAY_BUFFER, colorbuf)
-
 	glctx.EnableVertexAttribArray(color)
-	glctx.VertexAttribPointer(color, colorsPerVertex, gl.FLOAT, false, 0, 0) //更新color值
+	defer glctx.DisableVertexAttribArray(color)//必须全部缓存导入完成后再关闭
+	glctx.VertexAttribPointer(color, colorsPerVertex, gl.FLOAT, false, 0, 0) //导入color缓存
 	glctx.DrawArrays(gl.TRIANGLES, 0, vertexCount)
-	//gl.DisableVertexAttribArray(color)
+
+
 
 	fps.Draw(sz)
 }
@@ -209,7 +207,7 @@ var colorData = f32.Bytes(binary.LittleEndian, //过渡色
 
 const (
 	coordsPerVertex = 3 //坐标属性个数 x y z
-	vertexCount = 3 //点数
+	vertexCount     = 3 //点数
 	colorsPerVertex = 4 //颜色属性个数 r g b a
 )
 
