@@ -118,6 +118,33 @@ func onStart(glctx gl.Context) {
 	color = glctx.GetAttribLocation(program, "color")       // 获取颜色对象(索引)
 	scan = glctx.GetUniformLocation(program, "scan")        // 获取缩放对象(索引)
 
+	/*
+	VBO允许usage标示符取以下9种值：
+
+		gl.STATIC_DRAW
+		gl.STATIC_READ
+		gl.STATIC_COPY
+
+		gl.DYNAMIC_DRAW
+		gl.DYNAMIC_READ
+		gl.DYNAMIC_COPY
+
+		gl.STREAM_DRAW
+		gl.STREAM_READ
+		gl.STREAM_COPY
+
+	"Static”意味着VBO中的数据不会被改变（一次修改，多次使用），
+	"dynamic”意味着数据可以被频繁修改（多次修改，多次使用），
+	"stream”意味着数据每帧都不同（一次修改，一次使用）。
+
+	"Draw”意味着数据将会被送往GPU进行绘制，
+	"read”意味着数据会被用户的应用读取，
+	"copy”意味着数据会被用于绘制和读取。
+
+	注意在使用VBO时，只有draw是有效的，而copy和read主要将会在像素缓冲区（PBO）和帧缓冲区（FBO）中发挥作用。
+	系统会根据usage标示符为缓冲区对象分配最佳的存储位置，比如系统会为gl.STATIC_DRAW和gl.STREAM_DRAW分配显存，
+	gl.DYNAMIC_DRAW分配AGP，以及任何_READ_相关的缓冲区对象都会被存储到系统或者AGP中因为这样数据更容易读写
+	 */
 	positionbuf = glctx.CreateBuffer()
 	glctx.BindBuffer(gl.ARRAY_BUFFER, positionbuf)
 	glctx.BufferData(gl.ARRAY_BUFFER, triangleData, gl.STATIC_DRAW)
